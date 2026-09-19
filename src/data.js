@@ -85,15 +85,15 @@ export const CV = {
 
 // Colours of the pixel character that walks along the bottom of the page.
 export const CHARACTER = {
-  hair: "#150b17",
-  skin: "#ef8427",
+  hair: "#3a2540",
+  skin: "#f2c9a5",
   eye: "#1a1030",
-  blush: "#c6383f",
+  blush: "#e9868b",
   mouth: "#b5485a",
   outfit: "#60558d",
-  accent: "#ec5660",
+  accent: "#ebaaae",
   dark: "#2e2650",
-  boots: "#0b0301",
+  boots: "#3a1508",
 };
 
 // Skills are gear, not scores: no ratings, just what each one lets you do.
@@ -278,13 +278,17 @@ export const FEATURED_PROJECT = {
   subtitle: "AI-powered educational platform for children with dyslexia",
 
   description: [
-    "Arabic educational platform for children with dyslexia, supporting reading, spelling, comprehension, memory, and ordering through interactive games.",
-    "Graduation project at AIET, developed by an 11-member multidisciplinary team that I led as Team Leader & Frontend Developer.",
-    "Built the React interface, reusable UI components, and frontend features.",
-    "Integrated the frontend with ASP.NET Core, SQL Server, SignalR, and AI services for pre-assessment and Arabic speech analysis.",
-    "Includes four Arabic learning games, an AI pre-test with adaptive recommendations, specialist dashboards, real-time messaging, and PWA/offline capabilities.",
-    "Won first place at the Geniuses Forum Competition and placed 9th among 60+ projects in the NTRA Graduation Projects Competition 2026.",
+    "An Arabic educational platform that helps children with dyslexia practise reading, spelling, comprehension, memory, and ordering through interactive games, while specialists can monitor each child’s progress.",
+
+    "My graduation project at AIET, developed by an 11-member multidisciplinary team that I led. I worked as the Team Leader & Frontend Developer, building the React interface, reusable UI components, and frontend features.",
+
+    "The platform integrates with an ASP.NET Core backend, SQL Server, SignalR for real-time messaging, and AI services for pre-assessment and Arabic speech analysis. My role focused on the frontend and integrating these services into the web application.",
+
+    "Drago includes four Arabic learning games, an AI pre-test with adaptive recommendations, specialist dashboards, real-time messaging, and PWA/offline capabilities.",
+
+    "Drago won first place at the Geniuses Forum Competition and placed 9th among 60+ projects in the NTRA Graduation Projects Competition 2026.",
   ],
+
   tags: [
     "React",
     "JavaScript",
