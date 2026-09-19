@@ -1,0 +1,2117 @@
+diff --git a/README.md b/README.md
+index 60c5e91..0514189 100644
+--- a/README.md
++++ b/README.md
+@@ -1,8 +1,14 @@
+ # Habiba's portfolio (React + Vite)
+ 
+-A platformer-style portfolio: a night sky of stars that scatter when you hover them,
+-a Start button that opens the intro, "?" blocks that jump to each level, and a
+-sticky game HUD that tracks your coins and current world.
++A platformer-style portfolio.
++
++- **Runway map:** a level map is fixed to the bottom of the screen. A pixel character walks along it as you
++  scroll, jumps when she reaches a new section, holds a different item in each one (graduation cap, sword,
++  laptop, trophy, letter) and collects a coin at every flag. The flags are the navigation: tap one to walk there.
++- **Education:** laid out like a CV sheet, with an RGB-split glitch on the headings.
++- **Skills:** an RPG loadout. Tabs filter by type (hard skills, soft skills, languages), and picking an item
++  shows what it is and where it was used. There are no ratings, only what each skill lets you do.
++- **Hero:** stars that scatter when you hover them, and a Start button that opens the intro.
+ 
+ ## Run it
+ 
+@@ -14,7 +20,20 @@ npm run build    # production build in /dist
+ 
+ ## Edit your content
+ 
+-Everything (text, skills, projects, certificates, contact links) lives in `src/data.js`.
++Everything lives in `src/data.js`:
++
++| What | Where |
++| --- | --- |
++| Intro text and tagline | `PROFILE` |
++| CV: education and experience | `CV` |
++| Skills (name, type, icon, description) | `SKILLS` |
++| Character colours (hair, skin, outfit) | `CHARACTER` |
++| Drago and other projects | `FEATURED_PROJECT`, `MORE_PROJECTS` |
++| Trophies and certificates | `TROPHIES`, `CERTIFICATES` |
++| Contact details | `CONTACT` |
++
++Skill icons available: `sword`, `shield`, `hammer`, `wand`, `bomb`, `heart`, `bolt`, `hourglass`, `crown`,
++`bubble`, `book`. Sections and their order are in `src/sections.js`.
+ 
+ ## Add images
+ 
+@@ -32,10 +51,12 @@ Empty slots keep showing the "?" block until you add an image.
+ ```
+ src/
+   data.js            all content
+-  App.jsx            page layout, coin counter, scroll spy
+-  components/        Hero, StarField, LevelNav, Stats, Projects, Trophies, Contact...
+-  hooks/             useReveal, useScrollSpy, useTypewriter
+-  styles/            base.css, hero.css, sections.css
++  sections.js        the checkpoints (id, label, world, what the character holds)
++  App.jsx            page layout and coin counter
++  components/        Hero, Education, Skills, Projects, Trophies, Contact, Runner, Glitch...
++  hooks/             useRunway (scroll to position), useReveal, useTypewriter
++  pixel/             sprites.js (the character and props), icons.js (skill icons)
++  styles/            base.css, hero.css, sections.css, runner.css
+ ```
+ 
+ ## Deploy
+diff --git a/src/App.jsx b/src/App.jsx
+index 107a133..19e0717 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -1,33 +1,50 @@
+-import { useState } from 'react';
++import { useCallback, useState } from 'react';
+ import Hud from './components/Hud.jsx';
+ import Hero from './components/Hero.jsx';
+-import Stats from './components/Stats.jsx';
++import Education from './components/Education.jsx';
++import Skills from './components/Skills.jsx';
+ import Projects from './components/Projects.jsx';
+ import Trophies from './components/Trophies.jsx';
+ import Contact from './components/Contact.jsx';
+ import Ending from './components/Ending.jsx';
+-import { useScrollSpy } from './hooks/useScrollSpy.js';
+-
+-const SPY_IDS = ['top', 'stats', 'projects', 'trophies', 'contact'];
++import Runner from './components/Runner.jsx';
++import { SECTIONS } from './sections.js';
+ 
+ export default function App() {
+-  const [coins, setCoins] = useState(0);
+-  const active = useScrollSpy(SPY_IDS);
++  const [current, setCurrent] = useState(0);
++  const [collected, setCollected] = useState(() => new Set());
++
++  // Reaching a checkpoint collects its coin (and any coin you walked past).
++  const reach = useCallback((index) => {
++    setCurrent(index);
++    setCollected((prev) => {
++      let next = prev;
++      for (let i = 1; i <= index; i += 1) {
++        if (!next.has(i)) {
++          if (next === prev) next = new Set(prev);
++          next.add(i);
++        }
++      }
++      return next;
++    });
++  }, []);
+ 
+   return (
+     <>
+-      <a className="skip" href="#stats">
++      <a className="skip" href="#education">
+         Skip to content
+       </a>
+-      <Hud coins={coins} active={active} />
+-      <Hero onCoin={() => setCoins((c) => Math.min(c + 1, 99))} />
++      <Hud coins={collected.size} total={SECTIONS.length - 1} world={SECTIONS[current].world} />
++      <Hero />
+       <main>
+-        <Stats />
++        <Education />
++        <Skills />
+         <Projects />
+         <Trophies />
+         <Contact />
+       </main>
+       <Ending />
++      <Runner collected={collected} onReach={reach} />
+     </>
+   );
+ }
+diff --git a/src/components/Education.jsx b/src/components/Education.jsx
+new file mode 100644
+index 0000000..eea473b
+--- /dev/null
++++ b/src/components/Education.jsx
+@@ -0,0 +1,66 @@
++import Level from './Level.jsx';
++import Glitch from './Glitch.jsx';
++import { CV, CONTACT, PROFILE } from '../data.js';
++
++function Timeline({ items }) {
++  return (
++    <ol className="timeline">
++      {items.map((item) => (
++        <li className="cv-entry" key={item.title}>
++          {item.period && <span className="cv-period">{item.period}</span>}
++          <h4 className="cv-title">
++            <Glitch>{item.title}</Glitch>
++          </h4>
++          {item.place && <p className="cv-sub">{item.place}</p>}
++          {item.points && (
++            <ul className="cv-points">
++              {item.points.map((point) => (
++                <li key={point}>{point}</li>
++              ))}
++            </ul>
++          )}
++        </li>
++      ))}
++    </ol>
++  );
++}
++
++// The education level is laid out like a CV sheet, with a glitching screen effect.
++export default function Education() {
++  return (
++    <Level id="education" world="1-1" title="Education" glitch>
++      <article className="cv">
++        <span className="cv-bar" aria-hidden="true" />
++        <header className="cv-head">
++          <div>
++            <h3 className="cv-name">
++              <Glitch>{PROFILE.name}</Glitch>
++            </h3>
++            <p className="cv-role">{CV.headline}</p>
++          </div>
++          <p className="cv-meta">
++            {CONTACT.location}
++            <br />
++            {CONTACT.email}
++          </p>
++        </header>
++
++        <div className="cv-cols">
++          <section aria-labelledby="cv-edu">
++            <h3 className="cv-heading" id="cv-edu">
++              <Glitch>Education</Glitch>
++            </h3>
++            <Timeline items={CV.education} />
++          </section>
++
++          <section aria-labelledby="cv-exp">
++            <h3 className="cv-heading" id="cv-exp">
++              <Glitch>Experience</Glitch>
++            </h3>
++            <Timeline items={CV.experience} />
++          </section>
++        </div>
++      </article>
++    </Level>
++  );
++}
+diff --git a/src/components/Ending.jsx b/src/components/Ending.jsx
+index 7657911..6120912 100644
+--- a/src/components/Ending.jsx
++++ b/src/components/Ending.jsx
+@@ -6,11 +6,6 @@ export default function Ending() {
+         <br />
+         &copy; 2026 Habiba
+       </p>
+-      <div className="flag" aria-hidden="true">
+-        <span className="pole" />
+-        <span className="flag-cloth" />
+-      </div>
+-      <div className="floor brick" aria-hidden="true" />
+     </footer>
+   );
+ }
+diff --git a/src/components/Glitch.jsx b/src/components/Glitch.jsx
+new file mode 100644
+index 0000000..21e4e03
+--- /dev/null
++++ b/src/components/Glitch.jsx
+@@ -0,0 +1,14 @@
++// Text with an RGB-split glitch. The two coloured layers are decorative and hidden from screen readers.
++export default function Glitch({ children }) {
++  return (
++    <span className="glitch">
++      <span className="glitch-main">{children}</span>
++      <span className="glitch-layer glitch-a" aria-hidden="true">
++        {children}
++      </span>
++      <span className="glitch-layer glitch-b" aria-hidden="true">
++        {children}
++      </span>
++    </span>
++  );
++}
+diff --git a/src/components/Hero.jsx b/src/components/Hero.jsx
+index e9cb931..3b517cb 100644
+--- a/src/components/Hero.jsx
++++ b/src/components/Hero.jsx
+@@ -1,10 +1,9 @@
+ import { useId, useState } from 'react';
+ import StarField from './StarField.jsx';
+ import AboutDialog from './AboutDialog.jsx';
+-import LevelNav from './LevelNav.jsx';
+ import { PROFILE } from '../data.js';
+ 
+-export default function Hero({ onCoin }) {
++export default function Hero() {
+   const [open, setOpen] = useState(false);
+   const aboutId = useId();
+ 
+@@ -32,7 +31,7 @@ export default function Hero({ onCoin }) {
+           </div>
+         </div>
+ 
+-        <LevelNav onCoin={onCoin} />
++        <p className="hint">Scroll down to play</p>
+       </div>
+ 
+       <div className="pipe" aria-hidden="true">
+diff --git a/src/components/Hud.jsx b/src/components/Hud.jsx
+index 63fc1e5..f6e769d 100644
+--- a/src/components/Hud.jsx
++++ b/src/components/Hud.jsx
+@@ -1,7 +1,6 @@
+-const WORLDS = { top: 'Start', stats: '1-1', projects: '1-2', trophies: '1-3', contact: '1-4' };
+-
+-export default function Hud({ coins, active }) {
++export default function Hud({ coins, total, world }) {
+   const score = String(coins * 100).padStart(6, '0');
++  const pad = (n) => String(n).padStart(2, '0');
+   return (
+     <div className="hud" role="group" aria-label="Game status">
+       <div className="hud-item">
+@@ -11,12 +10,12 @@ export default function Hud({ coins, active }) {
+       <div className="hud-item">
+         <span>Coins</span>
+         <span>
+-          <i className="coin-dot" aria-hidden="true" />x{String(coins).padStart(2, '0')}
++          <i className="coin-dot" aria-hidden="true" />x{pad(coins)}/{pad(total)}
+         </span>
+       </div>
+       <div className="hud-item">
+         <span>World</span>
+-        <span>{WORLDS[active] ?? 'Start'}</span>
++        <span>{world}</span>
+       </div>
+     </div>
+   );
+diff --git a/src/components/Level.jsx b/src/components/Level.jsx
+index 3ba4773..14a0c9f 100644
+--- a/src/components/Level.jsx
++++ b/src/components/Level.jsx
+@@ -1,7 +1,8 @@
+ import { useReveal } from '../hooks/useReveal.js';
++import Glitch from './Glitch.jsx';
+ 
+ // One "level" of the page: a world label, a heading and a brick floor.
+-export default function Level({ id, world, title, children }) {
++export default function Level({ id, world, title, subtitle, glitch = false, wide = false, children }) {
+   const [ref, visible] = useReveal();
+   return (
+     <section
+@@ -10,10 +11,11 @@ export default function Level({ id, world, title, children }) {
+       className={`level reveal${visible ? ' is-visible' : ''}`}
+       aria-labelledby={`${id}-title`}
+     >
+-      <div className="container">
++      <div className={`container${wide ? ' container--wide' : ''}`}>
+         <div className="level-head">
+           <span className="world">World {world}</span>
+-          <h2 id={`${id}-title`}>{title}</h2>
++          <h2 id={`${id}-title`}>{glitch ? <Glitch>{title}</Glitch> : title}</h2>
++          {subtitle && <p className="level-sub">{subtitle}</p>}
+         </div>
+         {children}
+       </div>
+diff --git a/src/components/LevelNav.jsx b/src/components/LevelNav.jsx
+deleted file mode 100644
+index c2ac4e4..0000000
+--- a/src/components/LevelNav.jsx
++++ /dev/null
+@@ -1,40 +0,0 @@
+-import { useEffect, useRef, useState } from 'react';
+-
+-const LEVELS = [
+-  { id: 'stats', world: '1-1', label: 'Player Stats' },
+-  { id: 'projects', world: '1-2', label: 'Projects' },
+-  { id: 'trophies', world: '1-3', label: 'Trophies' },
+-  { id: 'contact', world: '1-4', label: 'Contact' },
+-];
+-
+-// Hit a "?" block to jump to a level. Each hit pops a coin.
+-export default function LevelNav({ onCoin }) {
+-  const [pop, setPop] = useState({ id: null, n: 0 });
+-  const timer = useRef();
+-
+-  useEffect(() => () => clearTimeout(timer.current), []);
+-
+-  const hit = (id) => {
+-    onCoin();
+-    setPop((p) => ({ id, n: p.n + 1 }));
+-    clearTimeout(timer.current);
+-    timer.current = setTimeout(() => setPop((p) => ({ ...p, id: null })), 800);
+-  };
+-
+-  return (
+-    <nav className="levelnav" aria-label="Levels">
+-      {LEVELS.map((level) => (
+-        <a key={level.id} className="levelbtn" href={`#${level.id}`} onClick={() => hit(level.id)}>
+-          <span className="qblock" aria-hidden="true">
+-            <span className="qmark">?</span>
+-            {pop.id === level.id && <span key={pop.n} className="coin-pop" />}
+-          </span>
+-          <span className="qlabel">
+-            <span>{level.world}</span>
+-            <span>{level.label}</span>
+-          </span>
+-        </a>
+-      ))}
+-    </nav>
+-  );
+-}
+diff --git a/src/components/PixelArt.jsx b/src/components/PixelArt.jsx
+new file mode 100644
+index 0000000..46acfbe
+--- /dev/null
++++ b/src/components/PixelArt.jsx
+@@ -0,0 +1,16 @@
++import { memo } from 'react';
++import { ICON_RECTS } from '../pixel/icons.js';
++
++// Draws one of the 12 x 12 pixel icons.
++function PixelArt({ icon, className }) {
++  const rects = ICON_RECTS[icon] ?? [];
++  return (
++    <svg viewBox="0 0 12 12" className={className} shapeRendering="crispEdges" aria-hidden="true" focusable="false">
++      {rects.map((r, i) => (
++        <rect key={i} x={r.x} y={r.y} width={r.w} height="1" fill={r.fill} />
++      ))}
++    </svg>
++  );
++}
++
++export default memo(PixelArt);
+diff --git a/src/components/Rating.jsx b/src/components/Rating.jsx
+deleted file mode 100644
+index 350363f..0000000
+--- a/src/components/Rating.jsx
++++ /dev/null
+@@ -1,11 +0,0 @@
+-export default function Rating({ value, max = 5 }) {
+-  return (
+-    <span className="rating" role="img" aria-label={`${value} out of ${max}`}>
+-      {Array.from({ length: max }, (_, i) => (
+-        <svg key={i} viewBox="0 0 24 24" className={i < value ? 'on' : 'off'} aria-hidden="true">
+-          <polygon points="12,2 15,8 22,9 17,14 18,21 12,17 6,21 7,14 2,9 9,8" />
+-        </svg>
+-      ))}
+-    </span>
+-  );
+-}
+diff --git a/src/components/Runner.jsx b/src/components/Runner.jsx
+new file mode 100644
+index 0000000..a3839ff
+--- /dev/null
++++ b/src/components/Runner.jsx
+@@ -0,0 +1,99 @@
++import { memo, useEffect, useRef, useState } from 'react';
++import { useRunway } from '../hooks/useRunway.js';
++import { SECTIONS, SECTION_IDS } from '../sections.js';
++import { FRAME_RECTS, PROP_RECTS } from '../pixel/sprites.js';
++
++const Rects = ({ list }) =>
++  list.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height="1" fill={r.fill} />);
++
++// The pixel character: four poses (idle, two walk frames, jump) plus the prop for the current section.
++const Sprite = memo(function Sprite({ prop }) {
++  return (
++    <svg className="sprite" viewBox="0 0 16 20" shapeRendering="crispEdges" aria-hidden="true" focusable="false">
++      <g className="g-idle">
++        <Rects list={FRAME_RECTS.idle} />
++      </g>
++      <g className="g-walk-a">
++        <Rects list={FRAME_RECTS.apart} />
++      </g>
++      <g className="g-walk-b">
++        <Rects list={FRAME_RECTS.together} />
++      </g>
++      <g className="g-jump">
++        <Rects list={FRAME_RECTS.jump} />
++      </g>
++      {prop && PROP_RECTS[prop] && (
++        <g>
++          <Rects list={PROP_RECTS[prop]} />
++        </g>
++      )}
++    </svg>
++  );
++});
++
++// The level map: a runway along the bottom of the screen with one flag per section.
++// The character walks along it as you scroll, and the flags are the navigation.
++export default function Runner({ collected, onReach }) {
++  const { x, index, moving, dir } = useRunway(SECTION_IDS);
++  const [jumping, setJumping] = useState(false);
++  const [bubble, setBubble] = useState(null);
++  const [pop, setPop] = useState(0);
++  const mounted = useRef(false);
++
++  useEffect(() => {
++    onReach(index);
++    if (!mounted.current) {
++      mounted.current = true;
++      return undefined;
++    }
++    setJumping(true);
++    setBubble(SECTIONS[index].label);
++    if (index > 0) setPop((n) => n + 1);
++    const a = setTimeout(() => setJumping(false), 650);
++    const b = setTimeout(() => setBubble(null), 2400);
++    return () => {
++      clearTimeout(a);
++      clearTimeout(b);
++    };
++  }, [index, onReach]);
++
++  const pose = jumping ? 'jump' : moving ? 'walk' : 'idle';
++  const edge = x < 0.08 ? 'start' : x > 0.92 ? 'end' : 'mid';
++  const last = SECTIONS.length - 1;
++
++  return (
++    <nav className="runway" aria-label="Level map">
++      <div className="track brick" aria-hidden="true" />
++
++      <ul className="checkpoints">
++        {SECTIONS.map((s, i) => (
++          <li key={s.id} className="cp-item" style={{ '--i': i / last }}>
++            <a
++              className={`cp${i === last ? ' cp--goal' : ''}`}
++              href={`#${s.id}`}
++              aria-current={index === i ? 'location' : undefined}
++            >
++              <span className="sr-only">{s.label}</span>
++              <span className="cp-pole" aria-hidden="true" />
++              <span className="cp-flag" aria-hidden="true" />
++              {i > 0 && !collected.has(i) && <span className="cp-coin" aria-hidden="true" />}
++              <span className="cp-label" aria-hidden="true">
++                {s.label}
++              </span>
++            </a>
++          </li>
++        ))}
++      </ul>
++
++      <div className="runner" style={{ '--x': x }} data-pose={pose} data-dir={dir} data-edge={edge} aria-hidden="true">
++        {bubble && <div className="bubble">{bubble}</div>}
++        {pop > 0 && <span key={pop} className="coin-pop" />}
++        <div className="flip">
++          <div className="bob">
++            <Sprite prop={SECTIONS[index].prop} />
++          </div>
++        </div>
++      </div>
++    </nav>
++  );
++}
+diff --git a/src/components/Skills.jsx b/src/components/Skills.jsx
+new file mode 100644
+index 0000000..4d38cc8
+--- /dev/null
++++ b/src/components/Skills.jsx
+@@ -0,0 +1,99 @@
++import { useState } from 'react';
++import Level from './Level.jsx';
++import PixelArt from './PixelArt.jsx';
++import { SKILLS, SKILL_TYPES } from '../data.js';
++
++const TABS = [
++  { id: 'all', label: 'All' },
++  ...Object.entries(SKILL_TYPES).map(([id, t]) => ({ id, label: t.tab })),
++];
++
++const countFor = (tab) => (tab === 'all' ? SKILLS.length : SKILLS.filter((s) => s.type === tab).length);
++
++// Skills as an inventory: pick a tab (skill type), pick an item to equip and read what it does.
++export default function Skills() {
++  const [tab, setTab] = useState('all');
++  const [selectedId, setSelectedId] = useState('react');
++
++  const visible = tab === 'all' ? SKILLS : SKILLS.filter((s) => s.type === tab);
++  const selected = SKILLS.find((s) => s.id === selectedId) ?? SKILLS[0];
++  const kind = SKILL_TYPES[selected.type];
++
++  const chooseTab = (id) => {
++    setTab(id);
++    const list = id === 'all' ? SKILLS : SKILLS.filter((s) => s.type === id);
++    if (!list.some((s) => s.id === selectedId)) setSelectedId(list[0].id);
++  };
++
++  const onTabKey = (event) => {
++    const i = TABS.findIndex((t) => t.id === tab);
++    let next = null;
++    if (event.key === 'ArrowRight') next = TABS[(i + 1) % TABS.length];
++    if (event.key === 'ArrowLeft') next = TABS[(i - 1 + TABS.length) % TABS.length];
++    if (next) {
++      event.preventDefault();
++      chooseTab(next.id);
++      document.getElementById(`tab-${next.id}`)?.focus();
++    }
++  };
++
++  return (
++    <Level id="skills" world="1-2" title="Skills" subtitle="Choose your loadout" wide>
++      <article className="panel loadout">
++        <h3 className="panel-title">Loadout</h3>
++
++        <div className="loadout-tabs" role="tablist" aria-label="Skill type" onKeyDown={onTabKey}>
++          {TABS.map((t) => (
++            <button
++              key={t.id}
++              type="button"
++              role="tab"
++              id={`tab-${t.id}`}
++              className="tab"
++              aria-selected={tab === t.id}
++              aria-controls="loadout-panel"
++              tabIndex={tab === t.id ? 0 : -1}
++              onClick={() => chooseTab(t.id)}
++            >
++              {t.label}
++              <span className="tab-count">{countFor(t.id)}</span>
++            </button>
++          ))}
++        </div>
++
++        <div className="loadout-body" role="tabpanel" id="loadout-panel" aria-labelledby={`tab-${tab}`}>
++          <aside className="equipped" style={{ '--type': kind.color }} aria-live="polite">
++            <div className="equipped-icon">
++              <PixelArt icon={selected.icon} />
++            </div>
++            <span className="type-badge">{kind.label}</span>
++            <h4 className="equipped-name">{selected.name}</h4>
++            <p className="equipped-cat">
++              <span>{kind.gear}</span>
++              <span>{selected.category}</span>
++            </p>
++            <p className="equipped-desc">{selected.desc}</p>
++          </aside>
++
++          <ul className="slots">
++            {visible.map((skill) => (
++              <li key={skill.id}>
++                <button
++                  type="button"
++                  className="slot-btn"
++                  style={{ '--type': SKILL_TYPES[skill.type].color }}
++                  aria-pressed={skill.id === selected.id}
++                  onClick={() => setSelectedId(skill.id)}
++                >
++                  <PixelArt icon={skill.icon} />
++                  <span className="slot-name">{skill.name}</span>
++                  <span className="slot-kind">{SKILL_TYPES[skill.type].label}</span>
++                </button>
++              </li>
++            ))}
++          </ul>
++        </div>
++      </article>
++    </Level>
++  );
++}
+diff --git a/src/components/Stats.jsx b/src/components/Stats.jsx
+deleted file mode 100644
+index a61c7ca..0000000
+--- a/src/components/Stats.jsx
++++ /dev/null
+@@ -1,60 +0,0 @@
+-import { Fragment } from 'react';
+-import Level from './Level.jsx';
+-import Panel from './Panel.jsx';
+-import Rating from './Rating.jsx';
+-import { TrophyIcon } from './Icons.jsx';
+-import { EDUCATION, EXPERIENCE, SKILLS, SOFT_SKILLS } from '../data.js';
+-
+-function RatingList({ items }) {
+-  return (
+-    <dl className="rating-list">
+-      {items.map((item) => (
+-        <Fragment key={item.name}>
+-          <dt>{item.name}</dt>
+-          <dd>
+-            <Rating value={item.level} />
+-          </dd>
+-        </Fragment>
+-      ))}
+-    </dl>
+-  );
+-}
+-
+-export default function Stats() {
+-  return (
+-    <Level id="stats" world="1-1" title="Player Stats">
+-      <div className="stats-grid">
+-        <Panel title="Education">
+-          <p className="school">{EDUCATION.school}</p>
+-          <ul className="plain-list">
+-            {EDUCATION.lines.map((line) => (
+-              <li key={line.text} className={`with-icon${line.highlight ? ' hl' : ''}`}>
+-                {line.trophy && <TrophyIcon className="trophy-mini" />}
+-                {line.text}
+-              </li>
+-            ))}
+-          </ul>
+-        </Panel>
+-
+-        <Panel title="Experience">
+-          <ul className="plain-list">
+-            {EXPERIENCE.map((item) => (
+-              <li key={item.title}>
+-                {item.title}
+-                {item.period && <span className="hl"> {item.period}</span>}
+-              </li>
+-            ))}
+-          </ul>
+-        </Panel>
+-
+-        <Panel title="Skills">
+-          <RatingList items={SKILLS} />
+-        </Panel>
+-
+-        <Panel title="Soft Skills">
+-          <RatingList items={SOFT_SKILLS} />
+-        </Panel>
+-      </div>
+-    </Level>
+-  );
+-}
+diff --git a/src/data.js b/src/data.js
+index d5ea197..510f6b5 100644
+--- a/src/data.js
++++ b/src/data.js
+@@ -12,44 +12,92 @@ export const PROFILE = {
+   photo: null, // e.g. 'images/me.png'
+ };
+ 
+-export const EDUCATION = {
+-  school: 'Alexandria Higher Institute of Engineering and Technology (AIET)',
+-  lines: [
+-    { text: 'Top Student', highlight: true, trophy: true },
+-    { text: 'Computer Engineering Department' },
+-    { text: 'GPA: 3.8 / 4.0', highlight: true },
+-    { text: 'Graduated with honors' },
+-    { text: '2021 - 2026' },
++// The CV section. Leave `period` empty to hide the date.
++export const CV = {
++  headline: 'Computer Engineer',
++  education: [
++    {
++      period: '2021 - 2026',
++      title: 'Computer Engineering',
++      place: 'Alexandria Higher Institute of Engineering and Technology (AIET), Alexandria, Egypt',
++      points: [
++        'GPA 3.8 / 4.0, graduated with honors',
++        'Top Student',
++        'Graduation project: Drago, an AI-powered learning platform for children with dyslexia. Led an 11-member team and won first place at the Geniuses Forum Competition.',
++      ],
++    },
++  ],
++  // Add years to the internships if you like, e.g. period: '2024'.
++  experience: [
++    { period: '', title: 'Intern at DEPI' },
++    { period: '', title: 'Intern at Egypt Experts for Software & Hardware (EES)' },
++    { period: '2023, 2024', title: 'ECPC Participant', place: 'Egyptian Collegiate Programming Contest' },
++    { period: '2024', title: 'NASA Solution App Challenge Participant' },
+   ],
+ };
+ 
+-// Add the years for the internships if you like, e.g. period: '2024'.
+-export const EXPERIENCE = [
+-  { title: 'Intern at DEPI', period: '' },
+-  { title: 'Intern at Egypt Experts for Software & Hardware (EES)', period: '' },
+-  { title: 'ECPC Participant', period: '2023, 2024' },
+-  { title: 'NASA Solution App Challenge Participant', period: '2024' },
+-];
++// Colours of the pixel character that walks along the bottom of the page.
++export const CHARACTER = {
++  hair: '#3a2540',
++  skin: '#f2c9a5',
++  eye: '#1a1030',
++  blush: '#e9868b',
++  mouth: '#b5485a',
++  outfit: '#60558d',
++  accent: '#ebaaae',
++  dark: '#2e2650',
++  boots: '#3a1508',
++};
+ 
+-// level: 1 to 5 stars.
+-// ASP.NET Core and C++ are new here and their levels are only placeholders: adjust them.
++// Skills are gear, not scores: no ratings, just what each one lets you do.
++export const SKILL_TYPES = {
++  hard: { label: 'Hard skill', tab: 'Hard skills', gear: 'Weapon', color: '#ff9d5c' },
++  soft: { label: 'Soft skill', tab: 'Soft skills', gear: 'Power', color: '#7ee0a0' },
++  language: { label: 'Language', tab: 'Languages', gear: 'Spell', color: '#7cc4ff' },
++};
++
++// icon: sword, shield, hammer, wand, bomb, heart, bolt, hourglass, crown, bubble, book
+ export const SKILLS = [
+-  { name: 'HTML', level: 5 },
+-  { name: 'CSS', level: 4 },
+-  { name: 'Bootstrap', level: 4 },
+-  { name: 'JavaScript', level: 3 },
+-  { name: 'React', level: 3 },
+-  { name: 'MongoDB', level: 3 },
+-  { name: 'ASP.NET Core', level: 3 },
+-  { name: 'C++', level: 3 },
+-];
++  { id: 'react', name: 'React', type: 'hard', category: 'Frontend', icon: 'sword',
++    desc: 'The frontend of Drago: React 19 and Vite, with i18next for Arabic and English and an offline-capable PWA.' },
++  { id: 'javascript', name: 'JavaScript', type: 'hard', category: 'Frontend', icon: 'sword',
++    desc: 'Interactive interfaces, API integration and state handling.' },
++  { id: 'html', name: 'HTML', type: 'hard', category: 'Frontend', icon: 'sword',
++    desc: 'The structure behind every page I build, including right-to-left Arabic layouts.' },
++  { id: 'css', name: 'CSS', type: 'hard', category: 'Frontend', icon: 'sword',
++    desc: 'Responsive layouts, animation and CSS Modules, styled for both Arabic and English.' },
++  { id: 'bootstrap', name: 'Bootstrap', type: 'hard', category: 'Frontend', icon: 'sword',
++    desc: 'Fast, responsive layouts and ready-made components.' },
++  { id: 'aspnet', name: 'ASP.NET Core', type: 'hard', category: 'Backend and data', icon: 'shield',
++    desc: "Drago's backend: a REST API with JWT authentication and real-time messaging." },
++  { id: 'sql', name: 'SQL Server', type: 'hard', category: 'Backend and data', icon: 'shield',
++    desc: 'The relational database behind Drago.' },
++  { id: 'signalr', name: 'SignalR', type: 'hard', category: 'Backend and data', icon: 'shield',
++    desc: 'Real-time messaging for doctors inside Drago.' },
++  { id: 'mongodb', name: 'MongoDB', type: 'hard', category: 'Backend and data', icon: 'shield',
++    desc: 'A document database for web projects.' },
++  { id: 'embedded', name: 'Embedded systems', type: 'hard', category: 'Embedded', icon: 'hammer',
++    desc: 'Hardware-level projects and coursework in embedded systems.' },
++  { id: 'speech-ai', name: 'Speech AI', type: 'hard', category: 'AI', icon: 'wand',
++    desc: 'Whisper and Wav2Vec2 speech models for Arabic reading practice, plus an Arabic-specific post-processing pipeline.' },
++  { id: 'cpp', name: 'C++ and algorithms', type: 'hard', category: 'Algorithms', icon: 'bomb',
++    desc: 'Competitive programming with data structures and algorithms, including ECPC in 2023 and 2024.' },
++
++  { id: 'teamwork', name: 'Teamwork', type: 'soft', category: 'People', icon: 'heart',
++    desc: 'Worked inside an 11-member multidisciplinary team on Drago.' },
++  { id: 'leadership', name: 'Leadership', type: 'soft', category: 'People', icon: 'crown',
++    desc: 'Led the Drago team across frontend, backend, AI/ML, UI/UX, database and QA.' },
++  { id: 'communication', name: 'Communication', type: 'soft', category: 'People', icon: 'bubble',
++    desc: 'Worked with supervisors, a clinical partner and teammates from different disciplines.' },
++  { id: 'problem-solving', name: 'Problem-solving', type: 'soft', category: 'Mindset', icon: 'bolt',
++    desc: 'Breaking hard problems down, from contest questions to debugging a full-stack platform.' },
++  { id: 'time', name: 'Time management', type: 'soft', category: 'Mindset', icon: 'hourglass',
++    desc: 'Balanced coursework, internships and a graduation project.' },
+ 
+-export const SOFT_SKILLS = [
+-  { name: 'English', level: 4 },
+-  { name: 'Teamwork', level: 5 },
+-  { name: 'Problem-solving', level: 4 },
+-  { name: 'Communication', level: 4 },
+-  { name: 'Time Management', level: 4 },
++  { id: 'arabic', name: 'Egyptian Arabic', type: 'language', category: 'Spoken', icon: 'book',
++    desc: 'Everyday communication, and the language Drago is built around.' },
++  { id: 'english', name: 'English', type: 'language', category: 'Spoken', icon: 'book',
++    desc: 'Technical and professional communication.' },
+ ];
+ 
+ export const FEATURED_PROJECT = {
+diff --git a/src/hooks/useRunway.js b/src/hooks/useRunway.js
+new file mode 100644
+index 0000000..e92d0fe
+--- /dev/null
++++ b/src/hooks/useRunway.js
+@@ -0,0 +1,80 @@
++import { useEffect, useState } from 'react';
++
++// Maps the scroll position onto the level: x goes from 0 (start) to 1 (goal),
++// and lands exactly on checkpoint i when section i reaches the reference line.
++export function useRunway(ids) {
++  const [state, setState] = useState({ x: 0, index: 0, moving: false, dir: 1 });
++
++  useEffect(() => {
++    let lastY = window.scrollY;
++    let frame = 0;
++    let idle;
++    let dir = 1;
++
++    const compute = () => {
++      frame = 0;
++      const y = window.scrollY;
++      const vh = window.innerHeight;
++      // Sections land 4.5rem below the top when you jump to them (see .level scroll-margin-top),
++      // so measure from that line: the character then stops exactly on the flag.
++      const offset = parseFloat(getComputedStyle(document.documentElement).fontSize) * 4.5 + 6;
++      const ref = y + offset;
++      const n = ids.length;
++      const tops = ids.map((id, k) => {
++        if (k === 0) return offset;
++        const el = document.getElementById(id);
++        return el ? el.getBoundingClientRect().top + y : Number.MAX_SAFE_INTEGER;
++      });
++
++      let index = 0;
++      for (let k = 0; k < n; k += 1) if (tops[k] <= ref) index = k;
++
++      const maxY = document.documentElement.scrollHeight - vh;
++      let x;
++      if (y >= maxY - 2) {
++        x = 1;
++        index = n - 1;
++      } else if (index >= n - 1) {
++        x = 1;
++      } else {
++        const span = Math.max(1, tops[index + 1] - tops[index]);
++        x = (index + Math.min(1, Math.max(0, (ref - tops[index]) / span))) / (n - 1);
++      }
++
++      if (y !== lastY) dir = y > lastY ? 1 : -1;
++      const moved = y !== lastY;
++      lastY = y;
++
++      setState((prev) => {
++        const moving = moved ? true : prev.moving;
++        if (prev.x === x && prev.index === index && prev.moving === moving && prev.dir === dir) return prev;
++        return { x, index, moving, dir };
++      });
++
++      if (moved) {
++        clearTimeout(idle);
++        idle = setTimeout(() => setState((p) => (p.moving ? { ...p, moving: false } : p)), 160);
++      }
++    };
++
++    const schedule = () => {
++      if (!frame) frame = requestAnimationFrame(compute);
++    };
++
++    compute();
++    window.addEventListener('scroll', schedule, { passive: true });
++    window.addEventListener('resize', schedule);
++    const ro = new ResizeObserver(schedule);
++    ro.observe(document.body);
++
++    return () => {
++      window.removeEventListener('scroll', schedule);
++      window.removeEventListener('resize', schedule);
++      ro.disconnect();
++      cancelAnimationFrame(frame);
++      clearTimeout(idle);
++    };
++  }, [ids]);
++
++  return state;
++}
+diff --git a/src/hooks/useScrollSpy.js b/src/hooks/useScrollSpy.js
+deleted file mode 100644
+index bdff24c..0000000
+--- a/src/hooks/useScrollSpy.js
++++ /dev/null
+@@ -1,22 +0,0 @@
+-import { useEffect, useState } from 'react';
+-
+-// Returns the id of the section that is crossing the middle of the screen.
+-export function useScrollSpy(ids) {
+-  const [active, setActive] = useState(ids[0]);
+-
+-  useEffect(() => {
+-    const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
+-    const io = new IntersectionObserver(
+-      (entries) => {
+-        entries.forEach((entry) => {
+-          if (entry.isIntersecting) setActive(entry.target.id);
+-        });
+-      },
+-      { rootMargin: '-45% 0px -50% 0px' }
+-    );
+-    els.forEach((el) => io.observe(el));
+-    return () => io.disconnect();
+-  }, [ids]);
+-
+-  return active;
+-}
+diff --git a/src/main.jsx b/src/main.jsx
+index d0cd5a8..f505325 100644
+--- a/src/main.jsx
++++ b/src/main.jsx
+@@ -4,6 +4,7 @@ import App from './App.jsx';
+ import './styles/base.css';
+ import './styles/hero.css';
+ import './styles/sections.css';
++import './styles/runner.css';
+ 
+ createRoot(document.getElementById('root')).render(
+   <React.StrictMode>
+diff --git a/src/pixel/icons.js b/src/pixel/icons.js
+new file mode 100644
+index 0000000..7415ba7
+--- /dev/null
++++ b/src/pixel/icons.js
+@@ -0,0 +1,176 @@
++import { gridToRects } from './sprites.js';
++
++// 12 x 12 pixel icons. '.' is transparent; other letters map to the icon's palette.
++const pad = (rows) => [...rows, ...Array(12 - rows.length).fill('.'.repeat(12))];
++
++export const RAW_ICONS = {
++  sword: {
++    palette: { c: '#ffffff', a: '#cfd8e3', y: '#f2b632', k: '#7a3d00' },
++    rows: pad([
++      '.....ca.....',
++      '.....ca.....',
++      '.....ca.....',
++      '.....ca.....',
++      '.....ca.....',
++      '.....ca.....',
++      '.....ca.....',
++      '...yyyyyy...',
++      '.....kk.....',
++      '.....kk.....',
++      '....kkkk....',
++    ]),
++  },
++  shield: {
++    palette: { a: '#5b8def', c: '#cfe0ff', y: '#f2b632' },
++    rows: pad([
++      '..yyyyyyyy..',
++      '.yaaaaaaaay.',
++      '.yaaccccaay.',
++      '.yaaccccaay.',
++      '.yaaaccaaay.',
++      '.yaaaccaaay.',
++      '..yaaccaay..',
++      '..yaaccaay..',
++      '...yaaaay...',
++      '....yaay....',
++      '.....yy.....',
++    ]),
++  },
++  hammer: {
++    palette: { a: '#9aa8bd', c: '#e2e8f0', k: '#a5622a', d: '#6b3a12' },
++    rows: pad([
++      '.aaaaaaaaaa.',
++      '.acccccccca.',
++      '.aaaaaaaaaa.',
++      '.....kk.....',
++      '.....kk.....',
++      '.....kk.....',
++      '.....kk.....',
++      '.....kk.....',
++      '.....kk.....',
++      '.....kk.....',
++      '.....dd.....',
++    ]),
++  },
++  wand: {
++    palette: { y: '#ffd84a', k: '#8b5cf6' },
++    rows: pad([
++      '.....yy.....',
++      '....yyyy....',
++      '.yyyyyyyyyy.',
++      '....yyyy....',
++      '.....yy.....',
++      '.....kk.....',
++      '.....kk.....',
++      '.....kk.....',
++      '.....kk.....',
++      '.....kk.....',
++      '.....kk.....',
++    ]),
++  },
++  bomb: {
++    palette: { k: '#2b2b3a', c: '#8fa3c7', a: '#5a6b8f', y: '#ffd84a' },
++    rows: pad([
++      '........y.y.',
++      '.......y.y..',
++      '......kk....',
++      '....kkkkkk..',
++      '...kccakkkk.',
++      '..kcakkkkkk.',
++      '..kkkkkkkkk.',
++      '..kkkkkkkkk.',
++      '..kkkkkkkkk.',
++      '...kkkkkkk..',
++      '....kkkkk...',
++    ]),
++  },
++  heart: {
++    palette: { a: '#ff6b8b', c: '#ffc2d0' },
++    rows: pad([
++      '............',
++      '..aaa..aaa..',
++      '.aaaaaaaaaa.',
++      '.acaaaaaaaa.',
++      '.aaaaaaaaaa.',
++      '..aaaaaaaa..',
++      '...aaaaaa...',
++      '....aaaa....',
++      '.....aa.....',
++    ]),
++  },
++  bolt: {
++    palette: { y: '#ffd84a' },
++    rows: pad([
++      '......yyyy..',
++      '.....yyyy...',
++      '....yyyy....',
++      '...yyyyyyy..',
++      '......yyy...',
++      '.....yyy....',
++      '....yyy.....',
++      '....yy......',
++      '...yy.......',
++      '...y........',
++    ]),
++  },
++  hourglass: {
++    palette: { k: '#e7be80', a: '#9ec9ff', y: '#ffd84a' },
++    rows: pad([
++      '.kkkkkkkkkk.',
++      '..kaaaaaak..',
++      '...kaaaak...',
++      '....kaak....',
++      '.....kk.....',
++      '.....kk.....',
++      '....kyyk....',
++      '...kyyyyk...',
++      '..kyyyyyyk..',
++      '.kkkkkkkkkk.',
++    ]),
++  },
++  crown: {
++    palette: { y: '#ffd84a', r: '#ff5c7a', k: '#c47a12' },
++    rows: pad([
++      '............',
++      '.yy..yy..yy.',
++      '.yy..yy..yy.',
++      '.yyy.yy.yyy.',
++      '.yyyyyyyyyy.',
++      '.yyryyyyryy.',
++      '.yyyyyyyyyy.',
++      '.kkkkkkkkkk.',
++    ]),
++  },
++  bubble: {
++    palette: { a: '#f5efe4', k: '#16365d' },
++    rows: pad([
++      '............',
++      '..aaaaaaaa..',
++      '.aaaaaaaaaa.',
++      '.aaaaaaaaaa.',
++      '.aakaakaaka.',
++      '.aaaaaaaaaa.',
++      '..aaaaaaaa..',
++      '...aa.......',
++      '..a.........',
++    ]),
++  },
++  book: {
++    palette: { k: '#8b5cf6', a: '#f5efe4' },
++    rows: pad([
++      '............',
++      '.kkkkkkkkkk.',
++      '.kaaakkaaak.',
++      '.kaaakkaaak.',
++      '.kaaakkaaak.',
++      '.kaaakkaaak.',
++      '.kaaakkaaak.',
++      '.kaaakkaaak.',
++      '.kkkkkkkkkk.',
++    ]),
++  },
++};
++
++export const ICON_RECTS = Object.fromEntries(
++  Object.entries(RAW_ICONS).map(([name, def]) => [name, gridToRects(def.rows, def.palette)])
++);
+diff --git a/src/pixel/sprites.js b/src/pixel/sprites.js
+new file mode 100644
+index 0000000..0884acf
+--- /dev/null
++++ b/src/pixel/sprites.js
+@@ -0,0 +1,98 @@
++import { CHARACTER } from '../data.js';
++
++// Turn rows of characters into merged horizontal <rect> runs.
++export function gridToRects(rows, palette) {
++  const rects = [];
++  rows.forEach((row, y) => {
++    let x = 0;
++    while (x < row.length) {
++      const ch = row[x];
++      if (ch === '.' || !palette[ch]) {
++        x += 1;
++      } else {
++        let run = 1;
++        while (x + run < row.length && row[x + run] === ch) run += 1;
++        rects.push({ x, y, w: run, fill: palette[ch] });
++        x += run;
++      }
++    }
++  });
++  return rects;
++}
++
++/* The character is a 16 x 20 pixel grid.
++   Letters: h hair, s skin, e eye, p blush, m mouth, o outfit, a accent,
++   d dark hem, b boots. Props: n cap, y gold, g steel, q white, k dark, z screen, w paper. */
++const blank = '.'.repeat(16);
++
++const BODY = [
++  '......hhhh......',
++  '....hhhhhhhh....',
++  '...hhhhhhhhhh...',
++  '...hhhhhhhhhh...',
++  '...hhsssssshh...',
++  '...hssessessh...',
++  '...hspsssspsh...',
++  '....hssmmssh....',
++  '.....oooooo.....',
++  '....ooaaaaoo....',
++  '....ooaaaaoo....',
++  '....ssooooss....',
++  '.....oooooo.....',
++  '....dddddddd....',
++];
++
++const LEGS = {
++  idle: ['.....ss..ss.....', '.....ss..ss.....', '....bbb..bbb....'],
++  apart: ['....ss....ss....', '...ss......ss...', '..bbb......bbb..'],
++  together: ['......ssss......', '......ssss......', '.....bbbbbb.....'],
++  jump: ['.....ssssss.....', '....bbbbbbbb....', blank],
++};
++
++const frame = (legs) => [blank, blank, blank, ...BODY, ...legs];
++
++// Props are drawn on the same 16 x 20 grid, keyed by row number.
++const layer = (map) => Array.from({ length: 20 }, (_, i) => map[i] ?? blank);
++const sword = { 5: '............q...', 13: '...........yyy..', 14: '............k...', 15: '............y...' };
++for (let r = 6; r <= 12; r += 1) sword[r] = '............g...';
++
++const PROPS = {
++  cap: layer({ 1: '..nnnnnnnnnnnn..', 2: '....nnnnnnnn..y.', 3: '..............y.' }),
++  sword: layer(sword),
++  laptop: layer({
++    12: '....kkkkkkkk....',
++    13: '....kzzzzzzk....',
++    14: '....kzzzzzzk....',
++    15: '...kkkkkkkkkk...',
++  }),
++  trophy: layer({ 0: '...yyyyyyyyyy...', 1: '.....yyyyyy.....', 2: '......yyyy......' }),
++  letter: layer({ 12: '...........wwww.', 13: '...........wkkw.', 14: '...........wwww.' }),
++};
++
++export const PALETTE = {
++  h: CHARACTER.hair,
++  s: CHARACTER.skin,
++  e: CHARACTER.eye,
++  p: CHARACTER.blush,
++  m: CHARACTER.mouth,
++  o: CHARACTER.outfit,
++  a: CHARACTER.accent,
++  d: CHARACTER.dark,
++  b: CHARACTER.boots,
++  n: '#1a1a2e',
++  y: '#ffd84a',
++  g: '#cfd8e3',
++  q: '#ffffff',
++  k: '#1a1030',
++  z: '#5ee0ff',
++  w: '#f5efe4',
++};
++
++export const RAW = { frames: Object.fromEntries(Object.entries(LEGS).map(([k, l]) => [k, frame(l)])), props: PROPS };
++
++export const FRAME_RECTS = Object.fromEntries(
++  Object.entries(RAW.frames).map(([k, rows]) => [k, gridToRects(rows, PALETTE)])
++);
++export const PROP_RECTS = Object.fromEntries(
++  Object.entries(PROPS).map(([k, rows]) => [k, gridToRects(rows, PALETTE)])
++);
+diff --git a/src/sections.js b/src/sections.js
+new file mode 100644
+index 0000000..4540d09
+--- /dev/null
++++ b/src/sections.js
+@@ -0,0 +1,11 @@
++// The checkpoints along the level. `prop` is what the character holds in each one.
++export const SECTIONS = [
++  { id: 'top', label: 'Start', world: 'Start', prop: null },
++  { id: 'education', label: 'Education', world: '1-1', prop: 'cap' },
++  { id: 'skills', label: 'Skills', world: '1-2', prop: 'sword' },
++  { id: 'projects', label: 'Projects', world: '1-3', prop: 'laptop' },
++  { id: 'trophies', label: 'Trophies', world: '1-4', prop: 'trophy' },
++  { id: 'contact', label: 'Contact', world: '1-5', prop: 'letter' },
++];
++
++export const SECTION_IDS = SECTIONS.map((s) => s.id);
+diff --git a/src/styles/base.css b/src/styles/base.css
+index 6aee1d9..2e66e9c 100644
+--- a/src/styles/base.css
++++ b/src/styles/base.css
+@@ -45,6 +45,7 @@ body {
+   line-height: 1.35;
+   letter-spacing: 0.3px;
+   -webkit-font-smoothing: antialiased;
++  padding-bottom: 16px; /* keeps the runway from covering the last line */
+ }
+ 
+ :focus-visible {
+diff --git a/src/styles/hero.css b/src/styles/hero.css
+index 2a037b9..1172ee7 100644
+--- a/src/styles/hero.css
++++ b/src/styles/hero.css
+@@ -15,8 +15,7 @@
+ .title,
+ .tagline,
+ .start-btn,
+-.dialog,
+-.levelbtn {
++.dialog {
+   pointer-events: auto;
+ }
+ 
+@@ -144,70 +143,16 @@
+   }
+ }
+ 
+-/* ---------- Level menu: hit a block to jump ---------- */
+-.levelnav {
+-  display: flex;
+-  flex-wrap: wrap;
+-  justify-content: center;
+-  gap: 1.75rem 2.25rem;
+-  margin-top: clamp(2.5rem, 7vh, 4rem);
+-}
+-.levelbtn {
+-  display: flex;
+-  flex-direction: column;
+-  align-items: center;
+-  gap: 0.9rem;
+-  color: var(--light);
+-  text-decoration: none;
+-}
+-.qlabel {
+-  display: grid;
+-  gap: 0.4rem;
+-  max-width: 9rem;
++/* ---------- Scroll hint ---------- */
++.hint {
++  width: fit-content;
++  max-width: 100%;
++  margin: clamp(2rem, 6vh, 3.5rem) auto 0;
+   font-family: var(--pixel);
+-  font-size: 0.6rem;
+-  line-height: 1.6;
+-}
+-.qlabel span:first-child {
++  font-size: 0.65rem;
++  line-height: 1.8;
+   color: var(--star);
+-}
+-.levelbtn:hover .qblock,
+-.levelbtn:focus-visible .qblock {
+-  animation: bump 0.3s steps(4);
+-}
+-@keyframes bump {
+-  40% {
+-    transform: translateY(-14px);
+-  }
+-}
+-.coin-pop {
+-  position: absolute;
+-  left: 50%;
+-  top: -4px;
+-  width: 20px;
+-  height: 32px;
+-  margin-left: -10px;
+-  background: var(--coin);
+-  border: 4px solid var(--block-line);
+-  border-radius: 50%;
+-  pointer-events: none;
+-  animation: coin 0.7s steps(8) forwards;
+-}
+-@keyframes coin {
+-  0% {
+-    transform: translateY(0) scaleX(1);
+-    opacity: 1;
+-  }
+-  45% {
+-    transform: translateY(-64px) scaleX(0.25);
+-  }
+-  70% {
+-    transform: translateY(-84px) scaleX(1);
+-  }
+-  100% {
+-    transform: translateY(-40px) scaleX(0.25);
+-    opacity: 0;
+-  }
++  animation: blink 1.4s steps(2) infinite;
+ }
+ 
+ /* ---------- Ground and pipe ---------- */
+diff --git a/src/styles/runner.css b/src/styles/runner.css
+new file mode 100644
+index 0000000..f8eea09
+--- /dev/null
++++ b/src/styles/runner.css
+@@ -0,0 +1,261 @@
++/* The runway: a level map fixed to the bottom of the screen. */
++.runway {
++  position: fixed;
++  left: 0;
++  right: 0;
++  bottom: 0;
++  z-index: 40;
++  height: 0;
++  pointer-events: none;
++}
++.track {
++  position: absolute;
++  left: 0;
++  right: 0;
++  bottom: 0;
++  height: 16px;
++  background-size: 32px 32px;
++}
++.checkpoints {
++  margin: 0;
++  padding: 0;
++  list-style: none;
++}
++.cp-item {
++  position: absolute;
++  bottom: 16px;
++  left: calc(4% + var(--i) * 92%);
++  transform: translateX(-50%);
++}
++
++/* ---------- Flags ---------- */
++.cp {
++  position: relative;
++  display: block;
++  width: 44px;
++  height: 56px;
++  pointer-events: auto;
++  color: var(--light);
++  text-decoration: none;
++}
++.cp-pole {
++  position: absolute;
++  left: calc(50% - 2px);
++  bottom: 0;
++  width: 4px;
++  height: 44px;
++  background: var(--light);
++}
++.cp-flag {
++  position: absolute;
++  left: calc(50% + 2px);
++  top: 12px;
++  width: 18px;
++  height: 14px;
++  background: var(--pipe);
++  clip-path: polygon(0 0, 100% 50%, 0 100%);
++}
++.cp[aria-current="location"] .cp-flag {
++  background: var(--coin);
++}
++.cp--goal {
++  height: 88px;
++}
++.cp--goal .cp-pole {
++  height: 76px;
++}
++.cp--goal .cp-flag {
++  top: 12px;
++  width: 26px;
++  height: 20px;
++}
++.cp--goal .cp-pole::before {
++  content: "";
++  position: absolute;
++  left: -4px;
++  top: -10px;
++  width: 12px;
++  height: 12px;
++  background: var(--pipe);
++  border: 3px solid var(--pipe-line);
++}
++.cp-coin {
++  position: absolute;
++  left: calc(50% - 6px);
++  top: -6px;
++  width: 12px;
++  height: 18px;
++  background: var(--coin);
++  border: 3px solid var(--block-line);
++  border-radius: 50%;
++  animation: coin-float 1.2s steps(1) infinite;
++}
++.cp--goal .cp-coin {
++  top: -22px;
++}
++@keyframes coin-float {
++  50% {
++    transform: translateY(-3px);
++  }
++}
++.cp-label {
++  position: absolute;
++  left: 50%;
++  bottom: 100%;
++  margin-bottom: 8px;
++  padding: 0.45rem 0.55rem;
++  font-family: var(--pixel);
++  font-size: 0.55rem;
++  line-height: 1;
++  white-space: nowrap;
++  color: var(--light);
++  background: var(--panel);
++  border: 3px solid var(--light);
++  transform: translateX(-50%);
++  opacity: 0;
++  visibility: hidden;
++}
++.cp:hover .cp-label,
++.cp:focus-visible .cp-label {
++  opacity: 1;
++  visibility: visible;
++}
++.cp-item:first-child .cp-label {
++  left: 0;
++  transform: none;
++}
++.cp-item:last-child .cp-label {
++  left: auto;
++  right: 0;
++  transform: none;
++}
++
++/* ---------- The character ---------- */
++.runner {
++  position: absolute;
++  bottom: 16px;
++  left: calc(4% + var(--x) * 92%);
++  width: 80px;
++  height: 100px;
++  margin-left: -40px;
++  transition: left 0.12s linear;
++  pointer-events: none;
++}
++.flip,
++.bob {
++  width: 100%;
++  height: 100%;
++}
++.runner[data-dir="-1"] .flip {
++  transform: scaleX(-1);
++}
++.sprite {
++  display: block;
++  width: 100%;
++  height: 100%;
++  overflow: visible;
++  image-rendering: pixelated;
++}
++
++/* Poses: only one body frame is drawn at a time */
++.sprite g {
++  display: none;
++}
++.sprite g:last-child {
++  display: inline; /* the prop */
++}
++.runner[data-pose="idle"] .g-idle,
++.runner[data-pose="jump"] .g-jump,
++.runner[data-pose="walk"] .g-walk-a,
++.runner[data-pose="walk"] .g-walk-b {
++  display: inline;
++}
++.runner[data-pose="walk"] .g-walk-a {
++  animation: step-a 0.36s linear infinite;
++}
++.runner[data-pose="walk"] .g-walk-b {
++  animation: step-b 0.36s linear infinite;
++}
++@keyframes step-a {
++  0%, 49.9% { visibility: visible; }
++  50%, 100% { visibility: hidden; }
++}
++@keyframes step-b {
++  0%, 49.9% { visibility: hidden; }
++  50%, 100% { visibility: visible; }
++}
++.runner[data-pose="walk"] .bob {
++  animation: bob 0.36s steps(1) infinite;
++}
++.runner[data-pose="idle"] .bob {
++  animation: idle 1.6s steps(1) infinite;
++}
++.runner[data-pose="jump"] .bob {
++  animation: jump 0.6s steps(10) 1;
++}
++@keyframes bob {
++  50% { transform: translateY(-4px); }
++}
++@keyframes idle {
++  50% { transform: translateY(-3px); }
++}
++@keyframes jump {
++  0% { transform: translateY(0); }
++  50% { transform: translateY(-70px); }
++  100% { transform: translateY(0); }
++}
++
++/* Speech bubble with the name of the section you just reached */
++.bubble {
++  position: absolute;
++  left: 50%;
++  bottom: calc(100% + 8px);
++  padding: 0.5rem 0.6rem;
++  font-family: var(--pixel);
++  font-size: 0.6rem;
++  line-height: 1;
++  white-space: nowrap;
++  color: var(--block-line);
++  background: var(--block);
++  border: 3px solid var(--block-line);
++  transform: translateX(-50%);
++}
++.runner[data-edge="start"] .bubble {
++  left: 0;
++  transform: none;
++}
++.runner[data-edge="end"] .bubble {
++  left: auto;
++  right: 0;
++  transform: none;
++}
++
++.coin-pop {
++  position: absolute;
++  left: 50%;
++  top: 0;
++  width: 20px;
++  height: 32px;
++  margin-left: -10px;
++  background: var(--coin);
++  border: 4px solid var(--block-line);
++  border-radius: 50%;
++  animation: coin 0.7s steps(8) forwards;
++}
++@keyframes coin {
++  0% { transform: translateY(0) scaleX(1); opacity: 1; }
++  45% { transform: translateY(-40px) scaleX(0.25); }
++  70% { transform: translateY(-58px) scaleX(1); }
++  100% { transform: translateY(-20px) scaleX(0.25); opacity: 0; }
++}
++
++@media (max-width: 600px) {
++  .runner {
++    width: 64px;
++    height: 80px;
++    margin-left: -32px;
++  }
++  .cp {
++    width: 40px;
++  }
++}
+diff --git a/src/styles/sections.css b/src/styles/sections.css
+index 7846445..9bc1f0c 100644
+--- a/src/styles/sections.css
++++ b/src/styles/sections.css
+@@ -28,6 +28,14 @@
+   background: var(--brick);
+   border: 4px solid var(--brick-line);
+ }
++.container--wide {
++  width: min(1280px, 100% - 2rem);
++}
++.level-sub {
++  margin: 0;
++  font-size: clamp(1.3rem, 3vw, 1.7rem);
++  color: var(--star);
++}
+ .level-head h2 {
+   margin: 0;
+   font-family: var(--pixel);
+@@ -106,37 +114,411 @@
+   color: var(--headers);
+ }
+ 
+-/* ---------- Stats ---------- */
+-.stats-grid {
++/* ---------- Glitch text ---------- */
++.glitch {
++  position: relative;
++  display: inline-block;
++}
++.glitch-layer {
++  position: absolute;
++  left: 0;
++  top: 0;
++  width: 100%;
++  height: 100%;
++  overflow: hidden;
++  opacity: 0;
++  pointer-events: none;
++  text-shadow: none;
++}
++.glitch-a {
++  color: #ff2e88;
++}
++.glitch-b {
++  color: #00e5ff;
++}
++@media (prefers-reduced-motion: no-preference) {
++  .glitch-a {
++    animation: glitch-a 6s steps(1) infinite;
++  }
++  .glitch-b {
++    animation: glitch-b 6s steps(1) infinite;
++  }
++  .cv-heading .glitch-a,
++  .cv-heading .glitch-b {
++    animation-delay: -3s;
++  }
++  .glitch:hover .glitch-a,
++  .cv-entry:hover .glitch-a {
++    animation: glitch-hover-a 0.35s steps(1) infinite;
++  }
++  .glitch:hover .glitch-b,
++  .cv-entry:hover .glitch-b {
++    animation: glitch-hover-b 0.35s steps(1) infinite;
++  }
++}
++@media (prefers-reduced-motion: reduce) {
++  .glitch:hover .glitch-a,
++  .cv-entry:hover .glitch-a {
++    opacity: 0.85;
++    transform: translate(-2px, 0);
++  }
++  .glitch:hover .glitch-b,
++  .cv-entry:hover .glitch-b {
++    opacity: 0.85;
++    transform: translate(2px, 0);
++  }
++}
++@keyframes glitch-a {
++  0%, 90%, 100% { opacity: 0; }
++  91% { opacity: 1; transform: translate(-4px, 1px); clip-path: inset(8% 0 62% 0); }
++  93% { opacity: 1; transform: translate(3px, -1px); clip-path: inset(58% 0 10% 0); }
++  95% { opacity: 1; transform: translate(-2px, 0); clip-path: inset(30% 0 40% 0); }
++  96% { opacity: 0; }
++}
++@keyframes glitch-b {
++  0%, 90.5%, 100% { opacity: 0; }
++  91.5% { opacity: 1; transform: translate(4px, -1px); clip-path: inset(50% 0 20% 0); }
++  93.5% { opacity: 1; transform: translate(-3px, 1px); clip-path: inset(12% 0 60% 0); }
++  95.5% { opacity: 1; transform: translate(2px, 0); clip-path: inset(40% 0 30% 0); }
++  96.5% { opacity: 0; }
++}
++@keyframes glitch-hover-a {
++  0% { opacity: 1; transform: translate(-3px, 0); clip-path: inset(0 0 55% 0); }
++  33% { opacity: 1; transform: translate(2px, 1px); clip-path: inset(45% 0 10% 0); }
++  66% { opacity: 1; transform: translate(-2px, -1px); clip-path: inset(20% 0 40% 0); }
++}
++@keyframes glitch-hover-b {
++  0% { opacity: 1; transform: translate(3px, 0); clip-path: inset(50% 0 0 0); }
++  33% { opacity: 1; transform: translate(-2px, -1px); clip-path: inset(10% 0 50% 0); }
++  66% { opacity: 1; transform: translate(2px, 1px); clip-path: inset(35% 0 25% 0); }
++}
++
++/* ---------- Education: the CV sheet ---------- */
++.cv {
++  --ink: #16213a;
++  --ink-soft: #3b4560;
++  --cv-accent: #4a3b8f;
++  position: relative;
++  overflow: hidden;
++  padding: clamp(1.25rem, 4vw, 2.75rem);
++  color: var(--ink);
++  background: var(--light);
++  border: 4px solid var(--light);
++  box-shadow: 8px 8px 0 var(--shadow);
++}
++.cv::before {
++  content: "";
++  position: absolute;
++  inset: 0;
++  pointer-events: none;
++  background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(22, 33, 58, 0.05) 3px 4px);
++}
++.cv-bar {
++  position: absolute;
++  left: 0;
++  right: 0;
++  top: 20%;
++  height: 10px;
++  opacity: 0;
++  pointer-events: none;
++  background: linear-gradient(90deg, rgba(255, 46, 136, 0.5) 0 35%, rgba(0, 229, 255, 0.5) 35% 100%);
++  mix-blend-mode: multiply;
++}
++@media (prefers-reduced-motion: no-preference) {
++  .cv-bar {
++    animation: cv-bar 7s steps(1) infinite;
++  }
++}
++@keyframes cv-bar {
++  0%, 92%, 100% { opacity: 0; }
++  93% { opacity: 1; top: 30%; }
++  94% { opacity: 1; top: 64%; }
++  95% { opacity: 1; top: 46%; }
++  96% { opacity: 0; }
++}
++.cv-head {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: flex-end;
++  justify-content: space-between;
++  gap: 0.75rem 2rem;
++  margin-bottom: 2rem;
++  padding-bottom: 1.25rem;
++  border-bottom: 4px solid var(--ink);
++}
++.cv-name {
++  margin: 0;
++  font-family: var(--pixel);
++  font-weight: 400;
++  font-size: clamp(1.2rem, 4vw, 2rem);
++  line-height: 1.3;
++}
++.cv-role {
++  margin: 0.5rem 0 0;
++  font-size: 1.5rem;
++  color: var(--cv-accent);
++}
++.cv-meta {
++  margin: 0;
++  font-size: 1.2rem;
++  text-align: right;
++  color: var(--ink-soft);
++  overflow-wrap: anywhere;
++}
++.cv-cols {
+   display: grid;
+-  gap: 2rem;
+-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+-  align-items: start;
++  gap: 2.5rem 3rem;
++  grid-template-columns: minmax(0, 1fr);
++}
++@media (min-width: 900px) {
++  .cv-cols {
++    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
++  }
+ }
+-.rating-list {
++.cv-heading {
++  margin: 0 0 1.5rem;
++  font-family: var(--pixel);
++  font-weight: 400;
++  font-size: 0.9rem;
++  line-height: 1.5;
++  text-transform: uppercase;
++  color: var(--cv-accent);
++}
++.timeline {
++  margin: 0;
++  padding: 0 0 0 1.5rem;
++  list-style: none;
++  border-left: 4px solid var(--ink);
++}
++.cv-entry {
++  position: relative;
++  padding-bottom: 1.6rem;
++}
++.cv-entry:last-child {
++  padding-bottom: 0;
++}
++.cv-entry::before {
++  content: "";
++  position: absolute;
++  left: calc(-1.5rem - 8px);
++  top: 0.4rem;
++  width: 12px;
++  height: 12px;
++  background: var(--brick);
++  border: 3px solid var(--ink);
++}
++.cv-period {
++  display: block;
++  margin-bottom: 0.35rem;
++  font-family: var(--pixel);
++  font-size: 0.6rem;
++  line-height: 1.6;
++  color: #8a3a1c;
++}
++.cv-title {
++  margin: 0;
++  font-size: 1.55rem;
++  font-weight: 600;
++  line-height: 1.15;
++}
++.cv-sub {
++  margin: 0.2rem 0 0;
++  color: var(--ink-soft);
++}
++.cv-points {
+   display: grid;
+-  grid-template-columns: 1fr auto;
+-  gap: 0.6rem 1rem;
++  gap: 0.4rem;
++  margin: 0.7rem 0 0;
++  padding: 0;
++  list-style: none;
++}
++.cv-points li {
++  position: relative;
++  padding-left: 1.2rem;
++}
++.cv-points li::before {
++  content: "";
++  position: absolute;
++  left: 0;
++  top: 0.5em;
++  width: 8px;
++  height: 8px;
++  background: var(--brick);
++}
++
++/* ---------- Skills: the loadout ---------- */
++.loadout {
++  overflow: hidden;
++}
++.loadout .panel-body {
++  padding: 0;
++}
++.loadout-tabs {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 0.75rem;
++  padding: 1.25rem clamp(1rem, 3vw, 2rem);
++  border-bottom: 4px solid var(--card);
++}
++.tab {
++  display: inline-flex;
+   align-items: center;
++  gap: 0.6rem;
++  padding: 0.8rem 1rem;
++  font-family: var(--pixel);
++  font-size: 0.65rem;
++  line-height: 1;
++  color: var(--light);
++  background: var(--sky-deep);
++  border: 3px solid var(--dim);
++  cursor: pointer;
++}
++.tab:hover {
++  border-color: var(--light);
++}
++.tab[aria-selected="true"] {
++  color: var(--block-line);
++  background: var(--block);
++  border-color: var(--block-line);
++}
++.tab-count {
++  padding: 0.25rem 0.4rem;
++  color: var(--light);
++  background: rgba(0, 0, 0, 0.4);
++}
++.loadout-body {
++  display: grid;
++  gap: 2rem;
++  min-height: min(62vh, 36rem);
++  padding: clamp(1rem, 3vw, 2rem);
++}
++@media (min-width: 900px) {
++  .loadout-body {
++    grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
++    gap: 2.5rem;
++  }
++}
++.equipped {
++  display: flex;
++  flex-direction: column;
++  align-items: flex-start;
++  gap: 0.9rem;
++  align-self: start;
++  padding: 1.5rem;
++  background: var(--sky-deep);
++  border: 4px solid var(--type, var(--dim));
++}
++.equipped-icon {
++  width: 128px;
++  height: 128px;
++  padding: 12px;
++  background: var(--panel);
++  border: 4px solid var(--type, var(--dim));
++}
++.equipped-icon svg {
++  display: block;
++  width: 100%;
++  height: 100%;
++  image-rendering: pixelated;
++}
++.type-badge {
++  padding: 0.45rem 0.6rem;
++  font-family: var(--pixel);
++  font-size: 0.6rem;
++  line-height: 1;
++  text-transform: uppercase;
++  color: #0c2141;
++  background: var(--type, var(--dim));
++}
++.equipped-name {
++  margin: 0;
++  font-family: var(--pixel);
++  font-weight: 400;
++  font-size: 1.1rem;
++  line-height: 1.4;
++  color: var(--headers);
++}
++.equipped-cat {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 0.35rem 1rem;
+   margin: 0;
++  color: var(--star);
+ }
+-.rating-list dt {
+-  min-width: 0;
++.equipped-desc {
++  margin: 0;
++  font-size: 1.4rem;
++  line-height: 1.3;
+ }
+-.rating-list dd {
++@media (max-width: 899px) {
++  .equipped {
++    display: grid;
++    grid-template-columns: auto minmax(0, 1fr);
++    align-items: start;
++    gap: 0.5rem 1rem;
++  }
++  .equipped-icon {
++    grid-row: 1 / span 3;
++    width: 96px;
++    height: 96px;
++    padding: 8px;
++  }
++  .equipped-desc {
++    grid-column: 1 / -1;
++  }
++  .type-badge {
++    justify-self: start;
++  }
++}
++.slots {
++  display: grid;
++  align-content: start;
++  gap: 1rem;
++  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+   margin: 0;
++  padding: 0;
++  list-style: none;
+ }
+-.rating {
+-  display: inline-flex;
+-  gap: 3px;
++.slot-btn {
++  display: grid;
++  justify-items: center;
++  align-content: center;
++  gap: 0.5rem;
++  width: 100%;
++  min-height: 10.5rem;
++  padding: 0.9rem 0.5rem;
++  font: inherit;
++  color: var(--light);
++  background: var(--sky-deep);
++  border: 4px solid var(--dim);
++  cursor: pointer;
++  transition: transform 0.1s;
+ }
+-.rating svg {
+-  width: 18px;
+-  height: 18px;
+-  fill: var(--dim);
++.slot-btn svg {
++  width: 60px;
++  height: 60px;
++  image-rendering: pixelated;
+ }
+-.rating svg.on {
+-  fill: var(--star);
++.slot-btn:hover {
++  border-color: var(--type);
++  transform: translateY(-4px);
++}
++.slot-btn[aria-pressed="true"] {
++  background: var(--panel);
++  border-color: var(--type);
++  box-shadow: 0 0 0 4px var(--type);
++}
++.slot-name {
++  font-size: 1.25rem;
++  line-height: 1.05;
++  text-align: center;
++}
++.slot-kind {
++  font-family: var(--pixel);
++  font-size: 0.5rem;
++  line-height: 1;
++  text-transform: uppercase;
++  color: var(--type);
+ }
+ 
+ /* ---------- Image slots ---------- */
+@@ -332,54 +714,17 @@
+   fill: var(--star);
+ }
+ 
+-/* ---------- Ending: flag pole ---------- */
++/* ---------- Ending ---------- */
+ .end {
+   margin-top: clamp(3rem, 8vw, 5rem);
++  padding-bottom: clamp(5rem, 14vw, 9rem);
+   text-align: center;
+ }
+ .end-text {
+   margin: 0;
+-  padding: 0 1rem 1.5rem;
++  padding: 0 1rem;
+   font-family: var(--pixel);
+   font-size: clamp(0.65rem, 2vw, 0.85rem);
+   line-height: 2.2;
+   color: var(--headers);
+ }
+-.flag {
+-  position: relative;
+-  width: min(1100px, 100% - 2rem);
+-  height: 220px;
+-  margin: 0 auto;
+-}
+-.pole {
+-  position: absolute;
+-  left: 50%;
+-  bottom: 0;
+-  width: 8px;
+-  height: 100%;
+-  margin-left: -4px;
+-  background: var(--light);
+-}
+-.pole::before {
+-  content: "";
+-  position: absolute;
+-  top: -14px;
+-  left: -6px;
+-  width: 20px;
+-  height: 20px;
+-  background: var(--pipe);
+-  border: 4px solid var(--pipe-line);
+-}
+-.flag-cloth {
+-  position: absolute;
+-  top: 16px;
+-  left: calc(50% - 68px);
+-  width: 64px;
+-  height: 44px;
+-  background: var(--pipe);
+-  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+-}
+-.end .floor {
+-  height: 72px;
+-  margin-top: 0;
+-}

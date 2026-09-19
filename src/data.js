@@ -9,7 +9,7 @@ export const PROFILE = {
   tagline: 'Computer engineer. Web platforms, embedded systems and AI.',
   about:
     "Hey there! I'm Habiba, a computer engineer who turns lines of code into working products. I build web apps with React and ASP.NET Core, tinker with embedded systems, and put AI to work in projects like Drago, my graduation project that won first place at the Geniuses Forum. Scroll down to explore my levels.",
-  photo: null, // e.g. 'images/me.png'
+  photo: 'images/assets/avatar.png',
 };
 
 export const EDUCATION = {
