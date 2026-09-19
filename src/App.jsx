@@ -38,9 +38,9 @@ export default function App() {
       <Hero />
       <main>
         <Education />
-        <Skills />
         <Projects />
         <Trophies />
+        <Skills />
         <Contact />
       </main>
       <Ending />
