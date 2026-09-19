@@ -1,0 +1,170 @@
+:root {
+  --pixel: "Press Start 2P", "Courier New", monospace;
+  --text: "Teko", "Segoe UI", system-ui, sans-serif;
+
+  /* Your original night-sky palette */
+  --sky: #16365d;
+  --sky-deep: #0c2141;
+  --panel: #0f2748;
+  --shadow: #041d3b;
+  --card: #60558d;
+  --light: #f5efe4;
+  --headers: #ebaaae;
+  --star: #ffe330;
+  --dim: #3b5379;
+
+  /* Platformer accents */
+  --brick: #c4552b;
+  --brick-line: #3a1508;
+  --block: #f2b632;
+  --block-dark: #c47a12;
+  --block-line: #7a3d00;
+  --pipe: #3fae49;
+  --pipe-dark: #1f7a31;
+  --pipe-light: #8fe08f;
+  --pipe-line: #0f3d1a;
+  --coin: #ffd84a;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--sky);
+  color: var(--light);
+  font-family: var(--text);
+  font-size: 1.3rem;
+  line-height: 1.35;
+  letter-spacing: 0.3px;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 3px solid var(--coin);
+  outline-offset: 3px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  z-index: 50;
+  padding: 0.6rem 1rem;
+  font-family: var(--pixel);
+  font-size: 0.7rem;
+  color: var(--block-line);
+  background: var(--block);
+}
+.skip:focus {
+  left: 1rem;
+  top: 1rem;
+}
+
+/* Brick texture used for floors */
+.brick {
+  background-color: var(--brick);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' shape-rendering='crispEdges'%3E%3Crect width='32' height='32' fill='%23c4552b'/%3E%3Crect x='2' y='2' width='30' height='2' fill='%23e0794a'/%3E%3Crect x='0' y='18' width='16' height='2' fill='%23e0794a'/%3E%3Crect x='18' y='18' width='14' height='2' fill='%23e0794a'/%3E%3Crect width='32' height='2' fill='%233a1508'/%3E%3Crect y='16' width='32' height='2' fill='%233a1508'/%3E%3Crect width='2' height='16' fill='%233a1508'/%3E%3Crect x='16' y='16' width='2' height='16' fill='%233a1508'/%3E%3C/svg%3E");
+  background-size: 48px 48px;
+  image-rendering: pixelated;
+}
+
+/* "?" block, used by the level menu and the empty image slots */
+.qblock {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  background: var(--block);
+  border: 4px solid var(--block-line);
+  box-shadow: inset 4px 4px 0 #ffe08a, inset -4px -4px 0 var(--block-dark);
+}
+.qblock--small {
+  width: 48px;
+  height: 48px;
+}
+.qmark {
+  font-family: var(--pixel);
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--block-line);
+  text-shadow: 2px 2px 0 #ffe08a;
+}
+.qblock--small .qmark {
+  font-size: 1.1rem;
+}
+
+/* Sticky game HUD */
+.hud {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem clamp(1rem, 4vw, 2.5rem);
+  font-family: var(--pixel);
+  font-size: clamp(0.55rem, 1.8vw, 0.8rem);
+  line-height: 1.7;
+  text-transform: uppercase;
+  color: var(--light);
+  background: var(--sky-deep);
+  border-bottom: 4px solid var(--card);
+}
+.hud-item {
+  display: flex;
+  flex-direction: column;
+}
+.coin-dot {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.9em;
+  margin-right: 0.4em;
+  vertical-align: -0.12em;
+  background: var(--coin);
+  border: 2px solid var(--block-line);
+  border-radius: 50%;
+}
+
+/* Sections drop in when they scroll into view (stepped, like a sprite) */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s steps(6), transform 0.6s steps(6);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
