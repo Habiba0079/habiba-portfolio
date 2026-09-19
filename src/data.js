@@ -12,44 +12,92 @@ export const PROFILE = {
   photo: 'images/assets/avatar.png',
 };
 
-export const EDUCATION = {
-  school: 'Alexandria Higher Institute of Engineering and Technology (AIET)',
-  lines: [
-    { text: 'Top Student', highlight: true, trophy: true },
-    { text: 'Computer Engineering Department' },
-    { text: 'GPA: 3.8 / 4.0', highlight: true },
-    { text: 'Graduated with honors' },
-    { text: '2021 - 2026' },
+// The CV section. Leave `period` empty to hide the date.
+export const CV = {
+  headline: 'Computer Engineer',
+  education: [
+    {
+      period: '2021 - 2026',
+      title: 'Computer Engineering',
+      place: 'Alexandria Higher Institute of Engineering and Technology (AIET), Alexandria, Egypt',
+      points: [
+        'GPA 3.8 / 4.0, graduated with honors',
+        'Top Student',
+        'Graduation project: Drago, an AI-powered learning platform for children with dyslexia. Led an 11-member team and won first place at the Geniuses Forum Competition.',
+      ],
+    },
+  ],
+  // Add years to the internships if you like, e.g. period: '2024'.
+  experience: [
+    { period: '', title: 'Intern at DEPI' },
+    { period: '', title: 'Intern at Egypt Experts for Software & Hardware (EES)' },
+    { period: '2023, 2024', title: 'ECPC Participant', place: 'Egyptian Collegiate Programming Contest' },
+    { period: '2024', title: 'NASA Solution App Challenge Participant' },
   ],
 };
 
-// Add the years for the internships if you like, e.g. period: '2024'.
-export const EXPERIENCE = [
-  { title: 'Intern at DEPI', period: '' },
-  { title: 'Intern at Egypt Experts for Software & Hardware (EES)', period: '' },
-  { title: 'ECPC Participant', period: '2023, 2024' },
-  { title: 'NASA Solution App Challenge Participant', period: '2024' },
-];
+// Colours of the pixel character that walks along the bottom of the page.
+export const CHARACTER = {
+  hair: '#3a2540',
+  skin: '#f2c9a5',
+  eye: '#1a1030',
+  blush: '#e9868b',
+  mouth: '#b5485a',
+  outfit: '#60558d',
+  accent: '#ebaaae',
+  dark: '#2e2650',
+  boots: '#3a1508',
+};
 
-// level: 1 to 5 stars.
-// ASP.NET Core and C++ are new here and their levels are only placeholders: adjust them.
+// Skills are gear, not scores: no ratings, just what each one lets you do.
+export const SKILL_TYPES = {
+  hard: { label: 'Hard skill', tab: 'Hard skills', gear: 'Weapon', color: '#ff9d5c' },
+  soft: { label: 'Soft skill', tab: 'Soft skills', gear: 'Power', color: '#7ee0a0' },
+  language: { label: 'Language', tab: 'Languages', gear: 'Spell', color: '#7cc4ff' },
+};
+
+// icon: sword, shield, hammer, wand, bomb, heart, bolt, hourglass, crown, bubble, book
 export const SKILLS = [
-  { name: 'HTML', level: 5 },
-  { name: 'CSS', level: 4 },
-  { name: 'Bootstrap', level: 4 },
-  { name: 'JavaScript', level: 3 },
-  { name: 'React', level: 3 },
-  { name: 'MongoDB', level: 3 },
-  { name: 'ASP.NET Core', level: 3 },
-  { name: 'C++', level: 3 },
-];
+  { id: 'react', name: 'React', type: 'hard', category: 'Frontend', icon: 'sword',
+    desc: 'The frontend of Drago: React 19 and Vite, with i18next for Arabic and English and an offline-capable PWA.' },
+  { id: 'javascript', name: 'JavaScript', type: 'hard', category: 'Frontend', icon: 'sword',
+    desc: 'Interactive interfaces, API integration and state handling.' },
+  { id: 'html', name: 'HTML', type: 'hard', category: 'Frontend', icon: 'sword',
+    desc: 'The structure behind every page I build, including right-to-left Arabic layouts.' },
+  { id: 'css', name: 'CSS', type: 'hard', category: 'Frontend', icon: 'sword',
+    desc: 'Responsive layouts, animation and CSS Modules, styled for both Arabic and English.' },
+  { id: 'bootstrap', name: 'Bootstrap', type: 'hard', category: 'Frontend', icon: 'sword',
+    desc: 'Fast, responsive layouts and ready-made components.' },
+  { id: 'aspnet', name: 'ASP.NET Core', type: 'hard', category: 'Backend and data', icon: 'shield',
+    desc: "Drago's backend: a REST API with JWT authentication and real-time messaging." },
+  { id: 'sql', name: 'SQL Server', type: 'hard', category: 'Backend and data', icon: 'shield',
+    desc: 'The relational database behind Drago.' },
+  { id: 'signalr', name: 'SignalR', type: 'hard', category: 'Backend and data', icon: 'shield',
+    desc: 'Real-time messaging for doctors inside Drago.' },
+  { id: 'mongodb', name: 'MongoDB', type: 'hard', category: 'Backend and data', icon: 'shield',
+    desc: 'A document database for web projects.' },
+  { id: 'embedded', name: 'Embedded systems', type: 'hard', category: 'Embedded', icon: 'hammer',
+    desc: 'Hardware-level projects and coursework in embedded systems.' },
+  { id: 'speech-ai', name: 'Speech AI', type: 'hard', category: 'AI', icon: 'wand',
+    desc: 'Whisper and Wav2Vec2 speech models for Arabic reading practice, plus an Arabic-specific post-processing pipeline.' },
+  { id: 'cpp', name: 'C++ and algorithms', type: 'hard', category: 'Algorithms', icon: 'bomb',
+    desc: 'Competitive programming with data structures and algorithms, including ECPC in 2023 and 2024.' },
 
-export const SOFT_SKILLS = [
-  { name: 'English', level: 4 },
-  { name: 'Teamwork', level: 5 },
-  { name: 'Problem-solving', level: 4 },
-  { name: 'Communication', level: 4 },
-  { name: 'Time Management', level: 4 },
+  { id: 'teamwork', name: 'Teamwork', type: 'soft', category: 'People', icon: 'heart',
+    desc: 'Worked inside an 11-member multidisciplinary team on Drago.' },
+  { id: 'leadership', name: 'Leadership', type: 'soft', category: 'People', icon: 'crown',
+    desc: 'Led the Drago team across frontend, backend, AI/ML, UI/UX, database and QA.' },
+  { id: 'communication', name: 'Communication', type: 'soft', category: 'People', icon: 'bubble',
+    desc: 'Worked with supervisors, a clinical partner and teammates from different disciplines.' },
+  { id: 'problem-solving', name: 'Problem-solving', type: 'soft', category: 'Mindset', icon: 'bolt',
+    desc: 'Breaking hard problems down, from contest questions to debugging a full-stack platform.' },
+  { id: 'time', name: 'Time management', type: 'soft', category: 'Mindset', icon: 'hourglass',
+    desc: 'Balanced coursework, internships and a graduation project.' },
+
+  { id: 'arabic', name: 'Egyptian Arabic', type: 'language', category: 'Spoken', icon: 'book',
+    desc: 'Everyday communication, and the language Drago is built around.' },
+  { id: 'english', name: 'English', type: 'language', category: 'Spoken', icon: 'book',
+    desc: 'Technical and professional communication.' },
 ];
 
 export const FEATURED_PROJECT = {

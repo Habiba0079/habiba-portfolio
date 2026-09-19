@@ -1,8 +1,14 @@
 # Habiba's portfolio (React + Vite)
 
-A platformer-style portfolio: a night sky of stars that scatter when you hover them,
-a Start button that opens the intro, "?" blocks that jump to each level, and a
-sticky game HUD that tracks your coins and current world.
+A platformer-style portfolio.
+
+- **Runway map:** a level map is fixed to the bottom of the screen. A pixel character walks along it as you
+  scroll, jumps when she reaches a new section, holds a different item in each one (graduation cap, sword,
+  laptop, trophy, letter) and collects a coin at every flag. The flags are the navigation: tap one to walk there.
+- **Education:** laid out like a CV sheet, with an RGB-split glitch on the headings.
+- **Skills:** an RPG loadout. Tabs filter by type (hard skills, soft skills, languages), and picking an item
+  shows what it is and where it was used. There are no ratings, only what each skill lets you do.
+- **Hero:** stars that scatter when you hover them, and a Start button that opens the intro.
 
 ## Run it
 
@@ -14,7 +20,20 @@ npm run build    # production build in /dist
 
 ## Edit your content
 
-Everything (text, skills, projects, certificates, contact links) lives in `src/data.js`.
+Everything lives in `src/data.js`:
+
+| What | Where |
+| --- | --- |
+| Intro text and tagline | `PROFILE` |
+| CV: education and experience | `CV` |
+| Skills (name, type, icon, description) | `SKILLS` |
+| Character colours (hair, skin, outfit) | `CHARACTER` |
+| Drago and other projects | `FEATURED_PROJECT`, `MORE_PROJECTS` |
+| Trophies and certificates | `TROPHIES`, `CERTIFICATES` |
+| Contact details | `CONTACT` |
+
+Skill icons available: `sword`, `shield`, `hammer`, `wand`, `bomb`, `heart`, `bolt`, `hourglass`, `crown`,
+`bubble`, `book`. Sections and their order are in `src/sections.js`.
 
 ## Add images
 
@@ -32,10 +51,12 @@ Empty slots keep showing the "?" block until you add an image.
 ```
 src/
   data.js            all content
-  App.jsx            page layout, coin counter, scroll spy
-  components/        Hero, StarField, LevelNav, Stats, Projects, Trophies, Contact...
-  hooks/             useReveal, useScrollSpy, useTypewriter
-  styles/            base.css, hero.css, sections.css
+  sections.js        the checkpoints (id, label, world, what the character holds)
+  App.jsx            page layout and coin counter
+  components/        Hero, Education, Skills, Projects, Trophies, Contact, Runner, Glitch...
+  hooks/             useRunway (scroll to position), useReveal, useTypewriter
+  pixel/             sprites.js (the character and props), icons.js (skill icons)
+  styles/            base.css, hero.css, sections.css, runner.css
 ```
 
 ## Deploy

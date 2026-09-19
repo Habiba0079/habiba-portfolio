@@ -1,0 +1,261 @@
+/* The runway: a level map fixed to the bottom of the screen. */
+.runway {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  height: 0;
+  pointer-events: none;
+}
+.track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16px;
+  background-size: 32px 32px;
+}
+.checkpoints {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cp-item {
+  position: absolute;
+  bottom: 16px;
+  left: calc(4% + var(--i) * 92%);
+  transform: translateX(-50%);
+}
+
+/* ---------- Flags ---------- */
+.cp {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 56px;
+  pointer-events: auto;
+  color: var(--light);
+  text-decoration: none;
+}
+.cp-pole {
+  position: absolute;
+  left: calc(50% - 2px);
+  bottom: 0;
+  width: 4px;
+  height: 44px;
+  background: var(--light);
+}
+.cp-flag {
+  position: absolute;
+  left: calc(50% + 2px);
+  top: 12px;
+  width: 18px;
+  height: 14px;
+  background: var(--pipe);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.cp[aria-current="location"] .cp-flag {
+  background: var(--coin);
+}
+.cp--goal {
+  height: 88px;
+}
+.cp--goal .cp-pole {
+  height: 76px;
+}
+.cp--goal .cp-flag {
+  top: 12px;
+  width: 26px;
+  height: 20px;
+}
+.cp--goal .cp-pole::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -10px;
+  width: 12px;
+  height: 12px;
+  background: var(--pipe);
+  border: 3px solid var(--pipe-line);
+}
+.cp-coin {
+  position: absolute;
+  left: calc(50% - 6px);
+  top: -6px;
+  width: 12px;
+  height: 18px;
+  background: var(--coin);
+  border: 3px solid var(--block-line);
+  border-radius: 50%;
+  animation: coin-float 1.2s steps(1) infinite;
+}
+.cp--goal .cp-coin {
+  top: -22px;
+}
+@keyframes coin-float {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.cp-label {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  margin-bottom: 8px;
+  padding: 0.45rem 0.55rem;
+  font-family: var(--pixel);
+  font-size: 0.55rem;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--light);
+  background: var(--panel);
+  border: 3px solid var(--light);
+  transform: translateX(-50%);
+  opacity: 0;
+  visibility: hidden;
+}
+.cp:hover .cp-label,
+.cp:focus-visible .cp-label {
+  opacity: 1;
+  visibility: visible;
+}
+.cp-item:first-child .cp-label {
+  left: 0;
+  transform: none;
+}
+.cp-item:last-child .cp-label {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+/* ---------- The character ---------- */
+.runner {
+  position: absolute;
+  bottom: 16px;
+  left: calc(4% + var(--x) * 92%);
+  width: 80px;
+  height: 100px;
+  margin-left: -40px;
+  transition: left 0.12s linear;
+  pointer-events: none;
+}
+.flip,
+.bob {
+  width: 100%;
+  height: 100%;
+}
+.runner[data-dir="-1"] .flip {
+  transform: scaleX(-1);
+}
+.sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  image-rendering: pixelated;
+}
+
+/* Poses: only one body frame is drawn at a time */
+.sprite g {
+  display: none;
+}
+.sprite g:last-child {
+  display: inline; /* the prop */
+}
+.runner[data-pose="idle"] .g-idle,
+.runner[data-pose="jump"] .g-jump,
+.runner[data-pose="walk"] .g-walk-a,
+.runner[data-pose="walk"] .g-walk-b {
+  display: inline;
+}
+.runner[data-pose="walk"] .g-walk-a {
+  animation: step-a 0.36s linear infinite;
+}
+.runner[data-pose="walk"] .g-walk-b {
+  animation: step-b 0.36s linear infinite;
+}
+@keyframes step-a {
+  0%, 49.9% { visibility: visible; }
+  50%, 100% { visibility: hidden; }
+}
+@keyframes step-b {
+  0%, 49.9% { visibility: hidden; }
+  50%, 100% { visibility: visible; }
+}
+.runner[data-pose="walk"] .bob {
+  animation: bob 0.36s steps(1) infinite;
+}
+.runner[data-pose="idle"] .bob {
+  animation: idle 1.6s steps(1) infinite;
+}
+.runner[data-pose="jump"] .bob {
+  animation: jump 0.6s steps(10) 1;
+}
+@keyframes bob {
+  50% { transform: translateY(-4px); }
+}
+@keyframes idle {
+  50% { transform: translateY(-3px); }
+}
+@keyframes jump {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-70px); }
+  100% { transform: translateY(0); }
+}
+
+/* Speech bubble with the name of the section you just reached */
+.bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  padding: 0.5rem 0.6rem;
+  font-family: var(--pixel);
+  font-size: 0.6rem;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--block-line);
+  background: var(--block);
+  border: 3px solid var(--block-line);
+  transform: translateX(-50%);
+}
+.runner[data-edge="start"] .bubble {
+  left: 0;
+  transform: none;
+}
+.runner[data-edge="end"] .bubble {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.coin-pop {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 20px;
+  height: 32px;
+  margin-left: -10px;
+  background: var(--coin);
+  border: 4px solid var(--block-line);
+  border-radius: 50%;
+  animation: coin 0.7s steps(8) forwards;
+}
+@keyframes coin {
+  0% { transform: translateY(0) scaleX(1); opacity: 1; }
+  45% { transform: translateY(-40px) scaleX(0.25); }
+  70% { transform: translateY(-58px) scaleX(1); }
+  100% { transform: translateY(-20px) scaleX(0.25); opacity: 0; }
+}
+
+@media (max-width: 600px) {
+  .runner {
+    width: 64px;
+    height: 80px;
+    margin-left: -32px;
+  }
+  .cp {
+    width: 40px;
+  }
+}

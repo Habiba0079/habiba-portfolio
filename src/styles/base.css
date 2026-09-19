@@ -45,6 +45,7 @@ body {
   line-height: 1.35;
   letter-spacing: 0.3px;
   -webkit-font-smoothing: antialiased;
+  padding-bottom: 16px; /* keeps the runway from covering the last line */
 }
 
 :focus-visible {

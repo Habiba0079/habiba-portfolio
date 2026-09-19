@@ -6,11 +6,6 @@ export default function Ending() {
         <br />
         &copy; 2026 Habiba
       </p>
-      <div className="flag" aria-hidden="true">
-        <span className="pole" />
-        <span className="flag-cloth" />
-      </div>
-      <div className="floor brick" aria-hidden="true" />
     </footer>
   );
 }

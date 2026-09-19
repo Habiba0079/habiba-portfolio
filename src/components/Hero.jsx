@@ -1,10 +1,9 @@
 import { useId, useState } from 'react';
 import StarField from './StarField.jsx';
 import AboutDialog from './AboutDialog.jsx';
-import LevelNav from './LevelNav.jsx';
 import { PROFILE } from '../data.js';
 
-export default function Hero({ onCoin }) {
+export default function Hero() {
   const [open, setOpen] = useState(false);
   const aboutId = useId();
 
@@ -32,7 +31,7 @@ export default function Hero({ onCoin }) {
           </div>
         </div>
 
-        <LevelNav onCoin={onCoin} />
+        <p className="hint">Scroll down to play</p>
       </div>
 
       <div className="pipe" aria-hidden="true">
