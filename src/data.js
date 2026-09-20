@@ -131,11 +131,11 @@ export const CV = {
 
 // Colours of the pixel character that walks along the bottom of the page.
 export const CHARACTER = {
-  hair: "#3a2540",
-  skin: "#f2c9a5",
+  hair: "#231626",
+  skin: "#cb8140",
   eye: "#1a1030",
-  blush: "#e9868b",
-  mouth: "#b5485a",
+  blush: "#b5485a",
+  mouth: "#ae272e",
   outfit: "#60558d",
   accent: "#ebaaae",
   dark: "#2e2650",
