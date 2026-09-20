@@ -1,0 +1,2724 @@
+diff --git a/README.md b/README.md
+index 0514189..1870e5e 100644
+--- a/README.md
++++ b/README.md
+@@ -2,13 +2,21 @@
+ 
+ A platformer-style portfolio.
+ 
+-- **Runway map:** a level map is fixed to the bottom of the screen. A pixel character walks along it as you
+-  scroll, jumps when she reaches a new section, holds a different item in each one (graduation cap, sword,
+-  laptop, trophy, letter) and collects a coin at every flag. The flags are the navigation: tap one to walk there.
+-- **Education:** laid out like a CV sheet, with an RGB-split glitch on the headings.
++- **Runway map:** a small level map sits at the bottom of the screen. A pixel character walks along it as you
++  scroll, jumps when she reaches a new section, holds a different item in each one (graduation cap, briefcase,
++  laptop, trophy, sword, letter) and collects a coin at every flag. The flags are the navigation: tap one to walk there.
++- **Education and Experience:** separate levels drawn as game windows (dates in the title bar, role and
++  organisation on the left, key points and tools on the right) with an RGB-split glitch. Each entry has an
++  optional logo slot: set `logo: "images/logos/depi.png"` in `src/data.js`, otherwise the short name is shown.
++  Everything is short bullet points, and `**keywords**` are highlighted.
++- **Projects:** an arcade. The screen is on the left and the joystick and buttons are on the right, so you can
++  watch and press at the same time. Pick a game with the joystick, press A to start it, then flip through its
++  screenshots. Up/down changes game, left/right changes image, B goes back to the game list. Arrow keys, Enter and
++  Escape work too, and you can swipe on the screen.
+ - **Skills:** an RPG loadout. Tabs filter by type (hard skills, soft skills, languages), and picking an item
+-  shows what it is and where it was used. There are no ratings, only what each skill lets you do.
+-- **Hero:** stars that scatter when you hover them, and a Start button that opens the intro.
++  shows what it does and where it was used. There are no ratings.
++- **Certificates:** a film strip at the bottom of the page. The certificates just roll past (it pauses on hover).
++- **Hero:** stars that scatter when you hover them, and a Start button that opens a short bullet intro.
+ 
+ ## Run it
+ 
+@@ -20,31 +28,34 @@ npm run build    # production build in /dist
+ 
+ ## Edit your content
+ 
+-Everything lives in `src/data.js`:
++Everything lives in `src/data.js`. Wrap a keyword in `**double asterisks**` to highlight it.
+ 
+ | What | Where |
+ | --- | --- |
+ | Intro text and tagline | `PROFILE` |
+-| CV: education and experience | `CV` |
++| Education, experience (logo, points, tools) and competitions | `CV` |
+ | Skills (name, type, icon, description) | `SKILLS` |
+ | Character colours (hair, skin, outfit) | `CHARACTER` |
+-| Drago and other projects | `FEATURED_PROJECT`, `MORE_PROJECTS` |
+-| Trophies and certificates | `TROPHIES`, `CERTIFICATES` |
++| The three arcade projects (blurb, tags, images, links) | `PROJECTS` |
++| Trophies | `TROPHIES` |
++| Certificates (the film strip) | `CERTIFICATES` |
+ | Contact details | `CONTACT` |
+ 
+ Skill icons available: `sword`, `shield`, `hammer`, `wand`, `bomb`, `heart`, `bolt`, `hourglass`, `crown`,
+-`bubble`, `book`. Sections and their order are in `src/sections.js`.
++`bubble`, `book`. The order of the sections (and the checkpoints on the runway) is in `src/sections.js`
++and `src/App.jsx`: keep the two in the same order.
+ 
+ ## Add images
+ 
+-1. Copy your files into `public/images/` (`projects/`, `certificates/`, or the root for your photo).
++1. Copy your files into `public/images/` (`projects/`, `certificates/`, `logos/`, or the root for your photo).
+ 2. In `src/data.js`, replace `null` with the path, without a leading slash:
+ 
+ ```js
+-screenshots: ['images/projects/drago-1.png', null, null],
++images: ["images/projects/tasky-1.png", "images/projects/tasky-2.png", null],
+ ```
+ 
+-Empty slots keep showing the "?" block until you add an image.
++Arcade screenshots show in full (nothing is cropped); 16:9 fills the screen best. Empty slots show a test card
++that tells you the file name to use.
+ 
+ ## Structure
+ 
+@@ -53,10 +64,11 @@ src/
+   data.js            all content
+   sections.js        the checkpoints (id, label, world, what the character holds)
+   App.jsx            page layout and coin counter
+-  components/        Hero, Education, Skills, Projects, Trophies, Contact, Runner, Glitch...
++  components/        Hero, Education, Experience, Projects (arcade), Trophies, Skills, Contact,
++                     CertificateStrip, Runner, QuestCard, Glitch...
+   hooks/             useRunway (scroll to position), useReveal, useTypewriter
+   pixel/             sprites.js (the character and props), icons.js (skill icons)
+-  styles/            base.css, hero.css, sections.css, runner.css
++  styles/            base.css, hero.css, sections.css, arcade.css, runner.css
+ ```
+ 
+ ## Deploy
+diff --git a/src/App.jsx b/src/App.jsx
+index ac7c8b1..2db4e80 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -2,10 +2,12 @@ import { useCallback, useState } from 'react';
+ import Hud from './components/Hud.jsx';
+ import Hero from './components/Hero.jsx';
+ import Education from './components/Education.jsx';
+-import Skills from './components/Skills.jsx';
++import Experience from './components/Experience.jsx';
+ import Projects from './components/Projects.jsx';
+ import Trophies from './components/Trophies.jsx';
++import Skills from './components/Skills.jsx';
+ import Contact from './components/Contact.jsx';
++import CertificateStrip from './components/CertificateStrip.jsx';
+ import Ending from './components/Ending.jsx';
+ import Runner from './components/Runner.jsx';
+ import { SECTIONS } from './sections.js';
+@@ -38,11 +40,13 @@ export default function App() {
+       <Hero />
+       <main>
+         <Education />
++        <Experience />
+         <Projects />
+         <Trophies />
+         <Skills />
+         <Contact />
+       </main>
++      <CertificateStrip />
+       <Ending />
+       <Runner collected={collected} onReach={reach} />
+     </>
+diff --git a/src/components/AboutDialog.jsx b/src/components/AboutDialog.jsx
+index 965ec97..de07e92 100644
+--- a/src/components/AboutDialog.jsx
++++ b/src/components/AboutDialog.jsx
+@@ -1,18 +1,49 @@
+-import { useTypewriter } from '../hooks/useTypewriter.js';
++import { useTypedCount } from '../hooks/useTypewriter.js';
++import { parseKeywords, stripKeywords } from './Keywords.jsx';
+ import { PROFILE } from '../data.js';
+ 
+-// The intro text box. Types itself out when the Start button opens it.
++const LINES = PROFILE.about.map(parseKeywords);
++const TOTAL = LINES.reduce((n, segs) => n + segs.reduce((m, s) => m + s.text.length, 0), 0);
++
++// The intro box: a few short bullet lines that type themselves out when Start opens it.
+ export default function AboutDialog({ active }) {
+-  const typed = useTypewriter(PROFILE.about, active);
++  const count = useTypedCount(TOTAL, active);
++  let left = count;
++  let current = 0;
++
++  const rows = LINES.map((segs, i) => {
++    const shown = segs.map((seg) => {
++      const take = Math.max(0, Math.min(seg.text.length, left));
++      left -= take;
++      return { ...seg, text: seg.text.slice(0, take) };
++    });
++    if (shown.some((s) => s.text)) current = i;
++    return shown;
++  });
++
+   return (
+     <div className="dialog">
+-      <p>
+-        <span className="sr-only">{PROFILE.about}</span>
+-        <span aria-hidden="true">
+-          {typed}
+-          <span className="caret" />
+-        </span>
+-      </p>
++      <span className="sr-only">{PROFILE.about.map(stripKeywords).join(' ')}</span>
++      <ul className="dialog-list" aria-hidden="true">
++        {rows.map((shown, i) => (
++          <li key={i} className={shown.some((s) => s.text) ? 'on' : ''}>
++            {/* invisible full line keeps the box from growing while it types */}
++            <span className="ghost">{stripKeywords(PROFILE.about[i])}</span>
++            <span className="typed">
++              {shown.map((seg, k) =>
++                seg.kw ? (
++                  <mark key={k} className="kw">
++                    {seg.text}
++                  </mark>
++                ) : (
++                  seg.text
++                )
++              )}
++              {i === current && <span className="caret" />}
++            </span>
++          </li>
++        ))}
++      </ul>
+     </div>
+   );
+ }
+diff --git a/src/components/CertificateStrip.jsx b/src/components/CertificateStrip.jsx
+new file mode 100644
+index 0000000..181abd2
+--- /dev/null
++++ b/src/components/CertificateStrip.jsx
+@@ -0,0 +1,55 @@
++import { CERTIFICATES } from '../data.js';
++import { resolveImage } from './ImageSlot.jsx';
++
++// Repeat the list so one half of the strip is always wider than the screen.
++const MIN_PER_HALF = 12;
++const REPEATS = Math.max(1, Math.ceil(MIN_PER_HALF / Math.max(1, CERTIFICATES.length)));
++const HALF = Array.from({ length: REPEATS }, () => CERTIFICATES).flat();
++
++function Frame({ cert }) {
++  const url = resolveImage(cert.image);
++  return (
++    <figure className="frame">
++      <div className="frame-shot">
++        {url ? (
++          <img src={url} alt="" loading="lazy" />
++        ) : (
++          <span className="qblock qblock--small" aria-hidden="true">
++            <span className="qmark">?</span>
++          </span>
++        )}
++      </div>
++      <figcaption>{cert.title}</figcaption>
++    </figure>
++  );
++}
++
++// The certificates roll past like a film strip at the bottom of the page. Nothing to click.
++export default function CertificateStrip() {
++  return (
++    <section className="strip" aria-labelledby="strip-title">
++      <h2 className="strip-title" id="strip-title">
++        Certificates
++      </h2>
++      <ul className="sr-only">
++        {CERTIFICATES.map((c) => (
++          <li key={c.title}>
++            {c.title}, {c.issuer}
++          </li>
++        ))}
++      </ul>
++
++      <div className="strip-film" aria-hidden="true">
++        <div className="strip-holes" />
++        <div className="strip-window">
++          <div className="strip-track">
++            {[...HALF, ...HALF].map((cert, i) => (
++              <Frame key={i} cert={cert} />
++            ))}
++          </div>
++        </div>
++        <div className="strip-holes" />
++      </div>
++    </section>
++  );
++}
+diff --git a/src/components/Contact.jsx b/src/components/Contact.jsx
+index b5e98ae..7734004 100644
+--- a/src/components/Contact.jsx
++++ b/src/components/Contact.jsx
+@@ -6,7 +6,7 @@ import { CONTACT, PROFILE } from '../data.js';
+ 
+ export default function Contact() {
+   return (
+-    <Level id="contact" world="1-4" title="Contact">
++    <Level id="contact" world="1-6" title="Contact">
+       <div className="contact-grid">
+         <div className="player">
+           <ImageSlot src={PROFILE.photo} alt={PROFILE.name} label="Your photo" ratio="1 / 1" />
+diff --git a/src/components/Education.jsx b/src/components/Education.jsx
+index eea473b..3c48911 100644
+--- a/src/components/Education.jsx
++++ b/src/components/Education.jsx
+@@ -1,66 +1,15 @@
+ import Level from './Level.jsx';
+-import Glitch from './Glitch.jsx';
+-import { CV, CONTACT, PROFILE } from '../data.js';
++import QuestCard from './QuestCard.jsx';
++import { CV } from '../data.js';
+ 
+-function Timeline({ items }) {
+-  return (
+-    <ol className="timeline">
+-      {items.map((item) => (
+-        <li className="cv-entry" key={item.title}>
+-          {item.period && <span className="cv-period">{item.period}</span>}
+-          <h4 className="cv-title">
+-            <Glitch>{item.title}</Glitch>
+-          </h4>
+-          {item.place && <p className="cv-sub">{item.place}</p>}
+-          {item.points && (
+-            <ul className="cv-points">
+-              {item.points.map((point) => (
+-                <li key={point}>{point}</li>
+-              ))}
+-            </ul>
+-          )}
+-        </li>
+-      ))}
+-    </ol>
+-  );
+-}
+-
+-// The education level is laid out like a CV sheet, with a glitching screen effect.
+ export default function Education() {
+   return (
+     <Level id="education" world="1-1" title="Education" glitch>
+-      <article className="cv">
+-        <span className="cv-bar" aria-hidden="true" />
+-        <header className="cv-head">
+-          <div>
+-            <h3 className="cv-name">
+-              <Glitch>{PROFILE.name}</Glitch>
+-            </h3>
+-            <p className="cv-role">{CV.headline}</p>
+-          </div>
+-          <p className="cv-meta">
+-            {CONTACT.location}
+-            <br />
+-            {CONTACT.email}
+-          </p>
+-        </header>
+-
+-        <div className="cv-cols">
+-          <section aria-labelledby="cv-edu">
+-            <h3 className="cv-heading" id="cv-edu">
+-              <Glitch>Education</Glitch>
+-            </h3>
+-            <Timeline items={CV.education} />
+-          </section>
+-
+-          <section aria-labelledby="cv-exp">
+-            <h3 className="cv-heading" id="cv-exp">
+-              <Glitch>Experience</Glitch>
+-            </h3>
+-            <Timeline items={CV.experience} />
+-          </section>
+-        </div>
+-      </article>
++      <div className="quest-list">
++        {CV.education.map((item) => (
++          <QuestCard key={item.title} item={item} />
++        ))}
++      </div>
+     </Level>
+   );
+ }
+diff --git a/src/components/Ending.jsx b/src/components/Ending.jsx
+index 6120912..8ccde7e 100644
+--- a/src/components/Ending.jsx
++++ b/src/components/Ending.jsx
+@@ -1,11 +1,7 @@
+ export default function Ending() {
+   return (
+     <footer className="end">
+-      <p className="end-text">
+-        Thanks for playing!
+-        <br />
+-        &copy; 2026 Habiba
+-      </p>
++      <p className="end-text">&copy; 2026 Habiba</p>
+     </footer>
+   );
+ }
+diff --git a/src/components/Experience.jsx b/src/components/Experience.jsx
+new file mode 100644
+index 0000000..984e228
+--- /dev/null
++++ b/src/components/Experience.jsx
+@@ -0,0 +1,26 @@
++import Level from './Level.jsx';
++import QuestCard from './QuestCard.jsx';
++import { CV } from '../data.js';
++
++export default function Experience() {
++  return (
++    <Level id="experience" world="1-2" title="Experience" glitch>
++      <div className="quest-list">
++        {CV.experience.map((item) => (
++          <QuestCard key={item.title} item={item} />
++        ))}
++      </div>
++
++      {CV.competitions.length > 0 && (
++        <>
++          <h3 className="subhead">Competitions</h3>
++          <div className="comp-grid">
++            {CV.competitions.map((item) => (
++              <QuestCard key={item.title + item.period} item={item} compact />
++            ))}
++          </div>
++        </>
++      )}
++    </Level>
++  );
++}
+diff --git a/src/components/ImageSlot.jsx b/src/components/ImageSlot.jsx
+index c982526..be30c5e 100644
+--- a/src/components/ImageSlot.jsx
++++ b/src/components/ImageSlot.jsx
+@@ -1,16 +1,16 @@
+ // Shows an image, or an empty "?" slot when no image has been added yet.
+-
+ // `src` is a path inside /public, without a leading slash: 'images/projects/a.png'
++export function resolveImage(src) {
++  if (!src) return null;
++  if (/^(https?:)?\/\/|^data:/.test(src)) return src;
++  return `${import.meta.env.BASE_URL}${src.replace(/^\//, "")}`;
++}
+ 
+-export default function ImageSlot({ src, alt, label }) {
+-  const url = src
+-    ? /^(https?:)?\/\//.test(src)
+-      ? src
+-      : `${import.meta.env.BASE_URL}${src.replace(/^\//, "")}`
+-    : null;
++export default function ImageSlot({ src, alt, label, ratio = "16 / 9" }) {
++  const url = resolveImage(src);
+ 
+   return (
+-    <figure className={`slot ${url ? "slot--image" : "slot--empty"}`}>
++    <figure className={`slot ${url ? "slot--image" : "slot--empty"}`} style={{ aspectRatio: ratio }}>
+       {url ? (
+         <img src={url} alt={alt} loading="lazy" />
+       ) : (
+diff --git a/src/components/Joystick.jsx b/src/components/Joystick.jsx
+new file mode 100644
+index 0000000..a6cfa18
+--- /dev/null
++++ b/src/components/Joystick.jsx
+@@ -0,0 +1,17 @@
++// An arcade joystick: four direction buttons around a base, with a ball that tilts when you press.
++const DIRS = ['up', 'right', 'down', 'left'];
++
++export default function Joystick({ tilt, labels, onPress }) {
++  return (
++    <div className="stick" data-tilt={tilt || ''}>
++      <div className="stick-base" aria-hidden="true">
++        <span className="stick-ball" />
++      </div>
++      {DIRS.map((dir) => (
++        <button key={dir} type="button" className={`dir dir-${dir}`} aria-label={labels[dir]} onClick={() => onPress(dir)}>
++          <span className="arrow" aria-hidden="true" />
++        </button>
++      ))}
++    </div>
++  );
++}
+diff --git a/src/components/Keywords.jsx b/src/components/Keywords.jsx
+new file mode 100644
+index 0000000..9ef6b52
+--- /dev/null
++++ b/src/components/Keywords.jsx
+@@ -0,0 +1,23 @@
++import { Fragment } from 'react';
++
++// Text can mark keywords with **double asterisks**. They are rendered highlighted.
++export function parseKeywords(text) {
++  return text
++    .split(/\*\*(.+?)\*\*/g)
++    .map((part, i) => ({ text: part, kw: i % 2 === 1 }))
++    .filter((seg) => seg.text !== '');
++}
++
++export const stripKeywords = (text) => text.replace(/\*\*(.+?)\*\*/g, '$1');
++
++export default function Keywords({ children }) {
++  return parseKeywords(children).map((seg, i) =>
++    seg.kw ? (
++      <mark key={i} className="kw">
++        {seg.text}
++      </mark>
++    ) : (
++      <Fragment key={i}>{seg.text}</Fragment>
++    )
++  );
++}
+diff --git a/src/components/Logo.jsx b/src/components/Logo.jsx
+new file mode 100644
+index 0000000..68c0469
+--- /dev/null
++++ b/src/components/Logo.jsx
+@@ -0,0 +1,11 @@
++import { resolveImage } from './ImageSlot.jsx';
++
++// An optional company logo. Without an image it shows the short name instead.
++export default function Logo({ src, short, name }) {
++  const url = resolveImage(src);
++  return (
++    <span className="logo" title={name}>
++      {url ? <img src={url} alt={`${name} logo`} /> : <span className="logo-initials" aria-hidden="true">{short}</span>}
++    </span>
++  );
++}
+diff --git a/src/components/Projects.jsx b/src/components/Projects.jsx
+index c376031..78105dc 100644
+--- a/src/components/Projects.jsx
++++ b/src/components/Projects.jsx
+@@ -1,69 +1,232 @@
++import { useEffect, useRef, useState } from 'react';
+ import Level from './Level.jsx';
+-import Panel from './Panel.jsx';
+-import ImageSlot from './ImageSlot.jsx';
+-import { FEATURED_PROJECT, MORE_PROJECTS } from '../data.js';
++import Joystick from './Joystick.jsx';
++import Keywords from './Keywords.jsx';
++import { resolveImage } from './ImageSlot.jsx';
++import { PROJECTS } from '../data.js';
+ 
+-function Tags({ items }) {
+-  if (!items.length) return null;
++const wrap = (i, n) => (i + n) % n;
++
++// Shown on the arcade screen until a real image is added.
++function NoSignal({ hint }) {
+   return (
+-    <ul className="tags">
+-      {items.map((tag) => (
+-        <li key={tag} className="tag">
+-          {tag}
+-        </li>
+-      ))}
+-    </ul>
++    <div className="nosignal">
++      <div className="bars" aria-hidden="true" />
++      <div className="nosignal-box">
++        <span className="nosignal-title">No image yet</span>
++        <span className="nosignal-hint">{hint}</span>
++      </div>
++    </div>
+   );
+ }
+ 
+-export default function Projects() {
+-  const p = FEATURED_PROJECT;
++function Media({ project, index, dim = false }) {
++  const url = resolveImage(project.images[index]);
++  return (
++    <div className={`media${dim ? ' dim' : ''}`}>
++      {url ? (
++        <img className="shot" src={url} alt={`${project.title} screenshot ${index + 1}`} />
++      ) : (
++        <NoSignal hint={`images/projects/${project.id}-${index + 1}.png`} />
++      )}
++    </div>
++  );
++}
++
++function Menu({ game, onPick }) {
+   return (
+-    <Level id="projects" world="1-2" title="Projects">
+-      <div className="featured">
+-        <div className="shots">
+-          {p.screenshots.map((src, i) => (
+-            <ImageSlot
+-              key={i}
+-              src={src}
+-              alt={`${p.title} screenshot ${i + 1}`}
+-              label="Project screenshot"
+-              ratio={i === 0 ? '16 / 9' : '4 / 3'}
+-            />
++    <>
++      <Media project={PROJECTS[game]} index={0} dim />
++      <div className="menu">
++        <p className="menu-title">Select game</p>
++        <ol className="menu-list">
++          {PROJECTS.map((p, i) => (
++            <li key={p.id}>
++              <button type="button" className="menu-item" aria-current={i === game} onClick={() => onPick(i)}>
++                <span className="cursor" aria-hidden="true" />
++                {p.title}
++              </button>
++            </li>
+           ))}
++        </ol>
++        <p className="menu-hint">Press A to start</p>
++      </div>
++    </>
++  );
++}
++
++function Play({ project, slide }) {
++  return (
++    <>
++      <Media project={project} index={slide} />
++      <span className="screen-tag">{project.title}</span>
++      <span className="screen-count">
++        {slide + 1}/{project.images.length}
++      </span>
++      <span className="screen-dots" aria-hidden="true">
++        {project.images.map((_, i) => (
++          <i key={i} className={i === slide ? 'on' : ''} />
++        ))}
++      </span>
++    </>
++  );
++}
++
++// The project arcade: pick a game with the joystick, start it, then flip through its screenshots.
++export default function Projects() {
++  const [mode, setMode] = useState('menu'); // 'menu' | 'play'
++  const [game, setGame] = useState(0);
++  const [slide, setSlide] = useState(0);
++  const [flash, setFlash] = useState(0);
++  const [tilt, setTilt] = useState(null);
++  const tiltTimer = useRef();
++  const swipe = useRef(null);
++
++  useEffect(() => () => clearTimeout(tiltTimer.current), []);
++
++  const project = PROJECTS[game];
++  const count = project.images.length;
++  const bump = () => setFlash((n) => n + 1);
++
++  const goGame = (delta) => {
++    setGame((g) => wrap(g + delta, PROJECTS.length));
++    setSlide(0);
++    bump();
++  };
++  const goSlide = (delta) => {
++    setSlide((s) => wrap(s + delta, count));
++    bump();
++  };
++  const start = (index = game) => {
++    setGame(index);
++    setSlide(0);
++    setMode('play');
++    bump();
++  };
++  const back = () => {
++    setMode('menu');
++    bump();
++  };
++
++  const press = (dir) => {
++    setTilt(dir);
++    clearTimeout(tiltTimer.current);
++    tiltTimer.current = setTimeout(() => setTilt(null), 160);
++    if (mode === 'menu') goGame(dir === 'up' || dir === 'left' ? -1 : 1);
++    else if (dir === 'left' || dir === 'right') goSlide(dir === 'left' ? -1 : 1);
++    else goGame(dir === 'up' ? -1 : 1);
++  };
++  const pressA = () => (mode === 'menu' ? start() : goSlide(1));
++
++  const onKeyDown = (event) => {
++    const dirs = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
++    if (dirs[event.key]) {
++      event.preventDefault();
++      press(dirs[event.key]);
++    } else if (event.key === 'Enter' && event.target === event.currentTarget) {
++      event.preventDefault();
++      pressA();
++    } else if (event.key === 'Escape' && mode === 'play') {
++      event.preventDefault();
++      back();
++    }
++  };
++
++  // Swipe on the screen works like the joystick (left/right).
++  const onPointerDown = (event) => {
++    swipe.current = event.clientX;
++  };
++  const onPointerUp = (event) => {
++    if (swipe.current === null) return;
++    const dx = event.clientX - swipe.current;
++    swipe.current = null;
++    if (Math.abs(dx) > 40) press(dx < 0 ? 'right' : 'left');
++  };
++
++  const labels =
++    mode === 'menu'
++      ? { up: 'Previous game', down: 'Next game', left: 'Previous game', right: 'Next game' }
++      : { up: 'Previous game', down: 'Next game', left: 'Previous image', right: 'Next image' };
++
++  return (
++    <Level id="projects" world="1-3" title="Projects" wide>
++      <div
++        className="arcade"
++        role="group"
++        aria-label="Project arcade"
++        aria-describedby="arcade-help"
++        tabIndex={0}
++        onKeyDown={onKeyDown}
++      >
++        <p className="sr-only" id="arcade-help">
++          Use the arrow keys to move, Enter to start a game and Escape to go back to the game list.
++        </p>
++        <p className="sr-only" aria-live="polite">
++          {mode === 'play' ? `${project.title}, image ${slide + 1} of ${count}` : `Selected ${project.title}`}
++        </p>
++
++        <div className="arcade-screen">
++          <div className="bezel">
++            <div className="screen" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
++              <div className="screen-inner flick" key={flash}>
++                {mode === 'menu' ? <Menu game={game} onPick={start} /> : <Play project={project} slide={slide} />}
++              </div>
++              <div className="crt" aria-hidden="true" />
++            </div>
++          </div>
+         </div>
+ 
+-        <Panel title={p.title}>
+-          <p className="subtitle hl">{p.subtitle}</p>
+-          {p.description.map((text) => (
+-            <p key={text}>{text}</p>
+-          ))}
+-          <Tags items={p.tags} />
+-          {(p.links.live || p.links.code) && (
+-            <div className="project-actions">
+-              {p.links.live && (
+-                <a className="pixel-link" href={p.links.live} target="_blank" rel="noopener noreferrer">
++        <div className="arcade-info">
++          <div className="info-head">
++            <h3 className="info-title">{project.title}</h3>
++            <p className="info-status">{mode === 'play' ? `Playing ${slide + 1}/${count}` : 'Select game'}</p>
++          </div>
++          <p className="info-line">
++            <Keywords>{project.tagline}</Keywords>
++          </p>
++          <ul className="tags">
++            {project.tags.map((tag) => (
++              <li key={tag} className="tag">
++                {tag}
++              </li>
++            ))}
++          </ul>
++        </div>
++
++        <div className="controls">
++          <Joystick tilt={tilt} labels={labels} onPress={press} />
++
++          <div className="buttons">
++            <button type="button" className="abtn abtn--b" onClick={back} disabled={mode === 'menu'} aria-label="B: back to the game list">
++              <span className="abtn-cap">B</span>
++              <span>Menu</span>
++            </button>
++            <button
++              type="button"
++              className="abtn abtn--a"
++              onClick={pressA}
++              aria-label={mode === 'menu' ? 'A: start game' : 'A: next image'}
++            >
++              <span className="abtn-cap">A</span>
++              <span>{mode === 'menu' ? 'Start' : 'Next'}</span>
++            </button>
++          </div>
++
++          {(project.links.live || project.links.code) && (
++            <div className="controls-links">
++              {project.links.live && (
++                <a className="pixel-link" href={project.links.live} target="_blank" rel="noopener noreferrer">
+                   Live demo
+                 </a>
+               )}
+-              {p.links.code && (
+-                <a className="pixel-link" href={p.links.code} target="_blank" rel="noopener noreferrer">
+-                  Source code
++              {project.links.code && (
++                <a className="pixel-link" href={project.links.code} target="_blank" rel="noopener noreferrer">
++                  GitHub
+                 </a>
+               )}
+             </div>
+           )}
+-        </Panel>
+-      </div>
+-
+-      <div className="more">
+-        {MORE_PROJECTS.map((project, i) => (
+-          <Panel key={i} title={project.title}>
+-            <ImageSlot src={project.image} alt={project.title} label="Project screenshot" />
+-            <p className="slot-text">{project.description}</p>
+-            <Tags items={project.tags} />
+-          </Panel>
+-        ))}
++        </div>
+       </div>
+     </Level>
+   );
+diff --git a/src/components/QuestCard.jsx b/src/components/QuestCard.jsx
+new file mode 100644
+index 0000000..4bb73a4
+--- /dev/null
++++ b/src/components/QuestCard.jsx
+@@ -0,0 +1,50 @@
++import Glitch from './Glitch.jsx';
++import Keywords from './Keywords.jsx';
++import Logo from './Logo.jsx';
++
++// One education or experience entry, drawn as a game window: dates in the title bar,
++// role and organisation on the left, key points and tools on the right.
++export default function QuestCard({ item, compact = false }) {
++  return (
++    <article className={`panel quest${compact ? ' quest--compact' : ''}`}>
++      <span className="scan" aria-hidden="true" />
++      <p className="panel-title">{item.period}</p>
++
++      <div className="quest-body">
++        <div className="quest-head">
++          <Logo src={item.logo} short={item.short} name={item.org} />
++          <div className="quest-id">
++            <h3 className="quest-title">
++              <Glitch>{item.title}</Glitch>
++            </h3>
++            {item.badge && <span className="quest-badge">{item.badge}</span>}
++            <p className="quest-org">{item.org}</p>
++            {item.place && <p className="quest-place">{item.place}</p>}
++          </div>
++        </div>
++
++        <div className="quest-detail">
++          <ul className="quest-points">
++            {item.points.map((point) => (
++              <li key={point}>
++                <Keywords>{point}</Keywords>
++              </li>
++            ))}
++          </ul>
++          {item.tools && item.tools.length > 0 && (
++            <div className="quest-tools">
++              <span className="quest-tools-label">Tools</span>
++              <ul className="tags">
++                {item.tools.map((tool) => (
++                  <li key={tool} className="tag">
++                    {tool}
++                  </li>
++                ))}
++              </ul>
++            </div>
++          )}
++        </div>
++      </div>
++    </article>
++  );
++}
+diff --git a/src/components/Skills.jsx b/src/components/Skills.jsx
+index 4d38cc8..c348bb3 100644
+--- a/src/components/Skills.jsx
++++ b/src/components/Skills.jsx
+@@ -1,6 +1,7 @@
+ import { useState } from 'react';
+ import Level from './Level.jsx';
+ import PixelArt from './PixelArt.jsx';
++import Keywords from './Keywords.jsx';
+ import { SKILLS, SKILL_TYPES } from '../data.js';
+ 
+ const TABS = [
+@@ -38,7 +39,7 @@ export default function Skills() {
+   };
+ 
+   return (
+-    <Level id="skills" world="1-2" title="Skills" subtitle="Choose your loadout" wide>
++    <Level id="skills" world="1-5" title="Skills" subtitle="Choose your loadout" wide>
+       <article className="panel loadout">
+         <h3 className="panel-title">Loadout</h3>
+ 
+@@ -72,7 +73,9 @@ export default function Skills() {
+               <span>{kind.gear}</span>
+               <span>{selected.category}</span>
+             </p>
+-            <p className="equipped-desc">{selected.desc}</p>
++            <p className="equipped-desc">
++              <Keywords>{selected.desc}</Keywords>
++            </p>
+           </aside>
+ 
+           <ul className="slots">
+diff --git a/src/components/Trophies.jsx b/src/components/Trophies.jsx
+index 5f84854..efe22a6 100644
+--- a/src/components/Trophies.jsx
++++ b/src/components/Trophies.jsx
+@@ -1,13 +1,12 @@
+ import Level from './Level.jsx';
+ import Panel from './Panel.jsx';
+-import ImageSlot from './ImageSlot.jsx';
++import Keywords from './Keywords.jsx';
+ import { TrophyIcon } from './Icons.jsx';
+-import { TROPHIES, CERTIFICATES } from '../data.js';
++import { TROPHIES } from '../data.js';
+ 
+ export default function Trophies() {
+   return (
+-    <Level id="trophies" world="1-3" title="Trophies and Certificates">
+-      <h3 className="subhead">Trophies</h3>
++    <Level id="trophies" world="1-4" title="Trophies">
+       <div className="trophy-grid">
+         {TROPHIES.map((t) => (
+           <Panel key={t.title}>
+@@ -15,23 +14,14 @@ export default function Trophies() {
+               <TrophyIcon className="trophy-big" />
+               <div>
+                 <h4 className="item-title">{t.title}</h4>
+-                <p>{t.note}</p>
++                <p>
++                  <Keywords>{t.note}</Keywords>
++                </p>
+               </div>
+             </div>
+           </Panel>
+         ))}
+       </div>
+-
+-      <h3 className="subhead">Certificates</h3>
+-      <div className="cert-grid">
+-        {CERTIFICATES.map((c, i) => (
+-          <Panel key={i}>
+-            <ImageSlot src={c.image} alt={`${c.title} certificate`} label="Certificate image" ratio="4 / 3" />
+-            <h4 className="item-title slot-text">{c.title}</h4>
+-            <p className="hl">{c.issuer}</p>
+-          </Panel>
+-        ))}
+-      </div>
+     </Level>
+   );
+ }
+diff --git a/src/data.js b/src/data.js
+index 9109e99..6aee514 100644
+--- a/src/data.js
++++ b/src/data.js
+@@ -1,397 +1,239 @@
+ // Everything you see on the site lives in this file. Edit the text here.
+ //
++// Wrap a keyword in **double asterisks** to highlight it.
+ // Images: put files inside public/images/... and reference them WITHOUT a
+ // leading slash, for example "images/projects/drago-1.png".
+-// Leave a value as null to show an empty "?" slot.
++// Leave a value as null to show an empty slot.
+ 
+ export const PROFILE = {
+   name: "Habiba",
+ 
+   tagline: "Computer Engineer & Software Developer.",
+ 
+-  about:
+-    "Hey there! I'm Habiba, a computer engineering graduate who builds responsive and interactive web applications with React and JavaScript. I enjoy turning ideas into working products, solving technical problems, and working with teams to build real-world software. I'm the team leader and frontend developer behind Drago, my award-winning graduation project. Scroll down to explore my work, skills, and achievements.",
++  // One bullet per line, typed out when you press Start.
++  about: [
++    "Hi! I'm **Habiba**, a **computer engineering** graduate.",
++    "I build responsive **web apps** with **React** and **JavaScript**.",
++    "**Team leader** and **frontend developer** of **Drago**, my graduation project.",
++    "**Drago** won **1st place** at the Geniuses Forum.",
++  ],
+ 
+   photo: "images/assets/avatar.png",
+ };
+ 
+-// The CV section. Leave `period` empty to hide the date.
++// Education and experience. `logo` is optional: put a file in public/images/logos/
++// and use its path (e.g. "images/logos/depi.png"). Without a logo, the `short` name is shown.
++// `tools` is optional too.
+ export const CV = {
+-  headline: "Computer Engineer & Software Developer",
+-
+   education: [
+     {
+       period: "2021 - 2026",
+       title: "Computer Engineering",
+-      place:
+-        "Alexandria Higher Institute of Engineering and Technology (AIET), Alexandria, Egypt",
+-
++      org: "Alexandria Higher Institute of Engineering and Technology (AIET)",
++      place: "Alexandria, Egypt",
++      short: "AIET",
++      logo: null,
+       points: [
+-        "CGPA: 3.81 / 4.0, ranked 3rd in class, graduated with honors",
+-        "Top Student",
+-        "Graduation project: Drago, an AI-powered educational platform for children with dyslexia",
+-        "Team Leader & Frontend Developer of an 11-member multidisciplinary team",
+-        "Drago won first place at the Geniuses Forum Competition",
++        "**CGPA 3.81 / 4.0**, ranked **3rd** in class, graduated with **honors**",
++        "**Top Student**",
++        "Graduation project **Drago**, an AI-powered educational platform for children with dyslexia",
++        "**Team Leader & Frontend Developer** of an **11-member** multidisciplinary team",
++        "Drago won **first place** at the Geniuses Forum Competition",
+       ],
+     },
+   ],
+ 
+   experience: [
+     {
+-      period: "Apr 2024 - Oct 2024",
+-      title: "Full Stack Web Development Trainee",
+-      place: "Digital Egypt Pioneers Initiative (DEPI) - MCIT",
++      period: "Feb 2025 - Apr 2026",
++      title: "Problem Solving Mentor - C++ & Algorithms Instructor",
++      org: "Microsoft Club Community - AIET",
++      place: "Alexandria, Egypt",
++      short: "MSC",
++      logo: null,
+       points: [
+-        "160-hour hybrid training covering HTML, CSS, JavaScript, React, MongoDB, Node.js, Git/GitHub, and business English",
+-        "Built Tasky, a dashboard with dynamic charts, filtering, and interactive UI components",
++        "Delivered **20+ technical sessions** on **Data Structures**, **Algorithms**, and **C++**, helping students improve **problem-solving** and **debugging** skills",
++        "**Mentored** students preparing for **competitive programming** contests by reviewing solutions and teaching **optimization** techniques",
++        "Designed structured **practice sheets** to help students apply algorithmic concepts through practical problems",
+       ],
++      tools: ["C++", "Data Structures", "Algorithms", "Competitive Programming"],
+     },
+ 
+     {
+       period: "Jul 2025 - Aug 2025",
+-      title: "Software Development Trainee",
+-      place: "Egypt Experts for Software & Hardware (EES), Alexandria",
++      title: "Software Engineering Trainee",
++      badge: "Grade: Distinction",
++      org: "Egypt Experts for Software & Hardware (EES)",
++      place: "Alexandria, Egypt",
++      short: "EES",
++      logo: null,
+       points: [
+-        "Training in Oracle Database, SQL, REST APIs, JSON, ERP systems, and PowerBuilder",
+-        "Developed GreenLeaf Restaurant & Farm ERP as a final project and earned a Distinction grade",
++        "Developed **GreenLeaf Restaurant & Farm**, an **ERP-based** restaurant management system using **SQL**, **Oracle Database**, **REST APIs**, and **JSON**, earning an **Excellent** evaluation",
++        "Presented the system and **ERP integration** approach, earning a **Distinction** for the training program",
+       ],
++      tools: ["SQL", "Oracle Database", "REST APIs", "JSON"],
+     },
+ 
+     {
+-      period: "Feb 2025 - Apr 2026",
+-      title: "Problem-Solving Mentor & C++ / Algorithms Instructor",
+-      place: "Microsoft Club Community - AIET",
++      period: "Apr 2024 - Oct 2024",
++      title: "Full-Stack Web Development Trainee",
++      org: "Digital Egypt Pioneers Initiative (DEPI)",
++      place: "Hybrid",
++      short: "DEPI",
++      logo: null,
+       points: [
+-        "Delivered 20+ sessions covering C++, data structures, algorithms, and competitive programming",
+-        "Coached students for ECPC / ICPC-style problem solving and contests",
++        "Built web applications using **React.js** and **Node.js**, developing **reusable components** and integrating **backend APIs**",
++        "**Capstone Project:** collaborated on a **MERN stack** task management application, implementing **frontend features** and **API-driven workflows**",
+       ],
++      tools: ["React.js", "Node.js", "MongoDB", "Git & GitHub"],
+     },
++  ],
+ 
++  competitions: [
+     {
+       period: "2023, 2024",
+       title: "ECPC Participant",
+-      place: "Egyptian Collegiate Programming Contest",
+-      points: ["39th place among 450+ teams in ECPC 2024"],
++      org: "Egyptian Collegiate Programming Contest",
++      short: "ECPC",
++      logo: null,
++      points: ["**39th place** among **450+ teams** in ECPC 2024"],
+     },
+-
+     {
+       period: "2024",
+       title: "Participant",
+-      place: "NASA Space Apps Challenge",
+-      points: ["Participated as a member of Team Scrat"],
++      org: "NASA Space Apps Challenge",
++      short: "NASA",
++      logo: null,
++      points: ["Member of **Team Scrat**"],
+     },
+   ],
+ };
+ 
+ // Colours of the pixel character that walks along the bottom of the page.
+ export const CHARACTER = {
+-  hair: "#150b17",
+-  skin: "#ef8427",
++  hair: "#3a2540",
++  skin: "#f2c9a5",
+   eye: "#1a1030",
+-  blush: "#c6383f",
++  blush: "#e9868b",
+   mouth: "#b5485a",
+   outfit: "#60558d",
+-  accent: "#ec5660",
++  accent: "#ebaaae",
+   dark: "#2e2650",
+-  boots: "#0b0301",
++  boots: "#3a1508",
+ };
+ 
+ // Skills are gear, not scores: no ratings, just what each one lets you do.
+ export const SKILL_TYPES = {
+-  hard: {
+-    label: "Hard skill",
+-    tab: "Hard skills",
+-    gear: "Weapon",
+-    color: "#ff9d5c",
+-  },
+-
+-  soft: {
+-    label: "Soft skill",
+-    tab: "Soft skills",
+-    gear: "Power",
+-    color: "#7ee0a0",
+-  },
+-
+-  language: {
+-    label: "Language",
+-    tab: "Languages",
+-    gear: "Spell",
+-    color: "#7cc4ff",
+-  },
++  hard: { label: "Hard skill", tab: "Hard skills", gear: "Weapon", color: "#ff9d5c" },
++  soft: { label: "Soft skill", tab: "Soft skills", gear: "Power", color: "#7ee0a0" },
++  language: { label: "Language", tab: "Languages", gear: "Spell", color: "#7cc4ff" },
+ };
+ 
+-// Only technologies I have hands-on development experience with.
++// Only technologies with hands-on development experience.
++// icon: sword, shield, hammer, wand, bomb, heart, bolt, hourglass, crown, bubble, book
+ export const SKILLS = [
+   // Frontend
+-  {
+-    id: "react",
+-    name: "React.js",
+-    type: "hard",
+-    category: "Frontend",
+-    icon: "sword",
+-    desc: "Building responsive and interactive web interfaces with reusable components, hooks, state handling, and API integration.",
+-  },
+-
+-  {
+-    id: "javascript",
+-    name: "JavaScript",
+-    type: "hard",
+-    category: "Frontend",
+-    icon: "sword",
+-    desc: "Application logic, DOM interaction, asynchronous operations, API integration, and interactive web interfaces.",
+-  },
+-
+-  {
+-    id: "html",
+-    name: "HTML",
+-    type: "hard",
+-    category: "Frontend",
+-    icon: "sword",
+-    desc: "Semantic page structure and accessible web interfaces.",
+-  },
+-
+-  {
+-    id: "css",
+-    name: "CSS",
+-    type: "hard",
+-    category: "Frontend",
+-    icon: "sword",
+-    desc: "Responsive layouts, animations, reusable styles, and CSS Modules.",
+-  },
+-
+-  {
+-    id: "bootstrap",
+-    name: "Bootstrap",
+-    type: "hard",
+-    category: "Frontend",
+-    icon: "sword",
+-    desc: "Responsive layouts and reusable UI components for web applications.",
+-  },
+-
+-  // Databases / data technologies with hands-on experience
+-  {
+-    id: "sql",
+-    name: "SQL",
+-    type: "hard",
+-    category: "Data",
+-    icon: "shield",
+-    desc: "Writing queries and working with relational data through academic, training, and project work.",
+-  },
+-
+-  {
+-    id: "mongodb",
+-    name: "MongoDB",
+-    type: "hard",
+-    category: "Data",
+-    icon: "shield",
+-    desc: "Working with document-based data in full-stack web development training and projects.",
+-  },
+-
+-  // Programming / problem solving
+-  {
+-    id: "cpp",
+-    name: "C++",
+-    type: "hard",
+-    category: "Programming",
+-    icon: "bomb",
+-    desc: "Programming, data structures, algorithms, and competitive problem solving through ECPC and mentoring.",
+-  },
+-
+-  {
+-    id: "git",
+-    name: "Git & GitHub",
+-    type: "hard",
+-    category: "Tools",
+-    icon: "sword",
+-    desc: "Version control, source-code management, branching, and collaborative development.",
+-  },
++  { id: "react", name: "React.js", type: "hard", category: "Frontend", icon: "sword",
++    desc: "Building **responsive** and **interactive** web interfaces with **reusable components**, **hooks**, **state handling**, and **API integration**." },
++  { id: "javascript", name: "JavaScript", type: "hard", category: "Frontend", icon: "sword",
++    desc: "Application logic, **DOM** interaction, **asynchronous** operations, **API integration**, and interactive web interfaces." },
++  { id: "html", name: "HTML", type: "hard", category: "Frontend", icon: "sword",
++    desc: "**Semantic** page structure and **accessible** web interfaces." },
++  { id: "css", name: "CSS", type: "hard", category: "Frontend", icon: "sword",
++    desc: "**Responsive** layouts, **animations**, reusable styles, and **CSS Modules**." },
++  { id: "bootstrap", name: "Bootstrap", type: "hard", category: "Frontend", icon: "sword",
++    desc: "**Responsive** layouts and reusable **UI components** for web applications." },
++
++  // Data
++  { id: "sql", name: "SQL", type: "hard", category: "Data", icon: "shield",
++    desc: "Writing **queries** and working with **relational data** through academic, training, and project work." },
++  { id: "mongodb", name: "MongoDB", type: "hard", category: "Data", icon: "shield",
++    desc: "Working with **document-based data** in **full-stack** web development training and projects." },
++
++  // Programming and tools
++  { id: "cpp", name: "C++", type: "hard", category: "Programming", icon: "bomb",
++    desc: "Programming, **data structures**, **algorithms**, and **competitive problem solving** through ECPC and mentoring." },
++  { id: "git", name: "Git & GitHub", type: "hard", category: "Tools", icon: "sword",
++    desc: "**Version control**, source-code management, **branching**, and **collaborative development**." },
+ 
+   // Soft skills
+-  {
+-    id: "teamwork",
+-    name: "Teamwork",
+-    type: "soft",
+-    category: "People",
+-    icon: "heart",
+-    desc: "Worked within an 11-member multidisciplinary team on Drago.",
+-  },
+-
+-  {
+-    id: "leadership",
+-    name: "Leadership",
+-    type: "soft",
+-    category: "People",
+-    icon: "crown",
+-    desc: "Led the Drago team and coordinated work across frontend, backend, AI/ML, UI/UX, database, and QA.",
+-  },
+-
+-  {
+-    id: "communication",
+-    name: "Communication",
+-    type: "soft",
+-    category: "People",
+-    icon: "bubble",
+-    desc: "Presented software projects, communicated with supervisors and teammates, and delivered problem-solving sessions.",
+-  },
+-
+-  {
+-    id: "problem-solving",
+-    name: "Problem-solving",
+-    type: "soft",
+-    category: "Mindset",
+-    icon: "bolt",
+-    desc: "Breaking complex problems into practical steps, from programming challenges to debugging real applications.",
+-  },
+-
+-  {
+-    id: "time",
+-    name: "Time Management",
+-    type: "soft",
+-    category: "Mindset",
+-    icon: "hourglass",
+-    desc: "Balanced academic work, internships, mentoring, competitive programming, and a large graduation project.",
+-  },
++  { id: "teamwork", name: "Teamwork", type: "soft", category: "People", icon: "heart",
++    desc: "Worked within an **11-member** multidisciplinary team on Drago." },
++  { id: "leadership", name: "Leadership", type: "soft", category: "People", icon: "crown",
++    desc: "**Led** the Drago team and coordinated work across **frontend, backend, AI/ML, UI/UX, database, and QA**." },
++  { id: "communication", name: "Communication", type: "soft", category: "People", icon: "bubble",
++    desc: "**Presented** software projects, communicated with **supervisors** and teammates, and delivered **problem-solving sessions**." },
++  { id: "problem-solving", name: "Problem-solving", type: "soft", category: "Mindset", icon: "bolt",
++    desc: "Breaking **complex problems** into practical steps, from programming challenges to **debugging** real applications." },
++  { id: "time", name: "Time Management", type: "soft", category: "Mindset", icon: "hourglass",
++    desc: "Balanced **academic work**, **internships**, **mentoring**, competitive programming, and a large **graduation project**." },
+ 
+   // Languages
+-  {
+-    id: "arabic",
+-    name: "Arabic",
+-    type: "language",
+-    category: "Spoken",
+-    icon: "book",
+-    desc: "Native communication and the primary language used in Drago for its target learners.",
+-  },
+-
+-  {
+-    id: "english",
+-    name: "English",
+-    type: "language",
+-    category: "Spoken",
+-    icon: "book",
+-    desc: "Technical, academic, and professional communication.",
+-  },
++  { id: "arabic", name: "Arabic", type: "language", category: "Spoken", icon: "book",
++    desc: "**Native** communication and the primary language used in **Drago** for its target learners." },
++  { id: "english", name: "English", type: "language", category: "Spoken", icon: "book",
++    desc: "**Technical**, **academic**, and **professional** communication." },
+ ];
+ 
+-export const FEATURED_PROJECT = {
+-  title: "Drago",
+-
+-  subtitle: "AI-powered educational platform for children with dyslexia",
+-
+-  description: [
+-    "Arabic educational platform for children with dyslexia, supporting reading, spelling, comprehension, memory, and ordering through interactive games.",
+-    "Graduation project at AIET, developed by an 11-member multidisciplinary team that I led as Team Leader & Frontend Developer.",
+-    "Built the React interface, reusable UI components, and frontend features.",
+-    "Integrated the frontend with ASP.NET Core, SQL Server, SignalR, and AI services for pre-assessment and Arabic speech analysis.",
+-    "Includes four Arabic learning games, an AI pre-test with adaptive recommendations, specialist dashboards, real-time messaging, and PWA/offline capabilities.",
+-    "Won first place at the Geniuses Forum Competition and placed 9th among 60+ projects in the NTRA Graduation Projects Competition 2026.",
+-  ],
+-  tags: [
+-    "React",
+-    "JavaScript",
+-    "ASP.NET Core",
+-    "SQL Server",
+-    "SignalR",
+-    "Faster-Whisper",
+-    "PWA",
+-  ],
+-
+-  screenshots: [
+-    "images/projects/DragoGames.png",
+-    "images/projects/DragoLanding.png",
+-    "images/projects/DragoVolcano.png",
+-  ],
+-
+-  links: {
+-    live: "",
+-    code: "",
++// The three "games" in the project arcade.
++// images: screenshots shown on the arcade screen, in order (null = empty slot). Add or remove entries freely.
++// links: shown as buttons next to the joystick, only when filled in.
++export const PROJECTS = [
++  {
++    id: "drago",
++    title: "Drago",
++    tagline: "**AI-powered** learning platform for children with **dyslexia**. I led the team and built the **frontend**.",
++    tags: ["React", "JavaScript", "ASP.NET Core", "SQL Server", "SignalR", "Faster-Whisper", "PWA"],
++    images: [
++      "images/projects/DragoGames.png",
++      "images/projects/DragoLanding.png",
++      "images/projects/DragoVolcano.png",
++    ],
++    links: { live: "https://drago-frontend.vercel.app", code: "https://github.com/Drago-project/drago-frontend" },
+   },
+-};
+-
+-export const MORE_PROJECTS = [
+   {
++    id: "tasky",
+     title: "Tasky Dashboard",
+-    description:
+-      "A responsive web dashboard developed during DEPI training, featuring dynamic charts, filtering, and interactive UI components.",
+-    image: null,
++    tagline: "Responsive **dashboard** with dynamic **charts**, filtering and interactive UI, built at **DEPI**.",
+     tags: ["React", "JavaScript", "Bootstrap", "MongoDB", "Node.js"],
++    images: [null, null, null], // e.g. "images/projects/tasky-1.png"
++    links: {
++      live: "https://taskyy.up.railway.app",
++      code: "https://github.com/Habiba0079/Tasky-task-management-system-DEPI-Finale",
++    },
+   },
+-
+   {
++    id: "airline",
+     title: "Airline Reservation System",
+-    description:
+-      "A full-stack airline reservation system with responsive interfaces, relational database design, and backend integration using Flask and MySQL.",
+-    image: null,
++    tagline: "**Full-stack** booking system with a responsive UI, **relational database** and a **Flask** backend.",
+     tags: ["Bootstrap", "Flask", "MySQL"],
++    images: [null, null, null], // e.g. "images/projects/airline-1.png"
++    links: { live: "", code: "https://github.com/Habiba0079/Airline-Company-Booking-System-project" },
+   },
+ ];
+ 
+ export const TROPHIES = [
+-  {
+-    title: "First Place - Geniuses Forum Competition",
+-    note: "Won with Drago, my graduation project.",
+-  },
+-
+-  {
+-    title: "9th Place - NTRA Graduation Projects Competition 2026",
+-    note: "Drago placed 9th among 60+ graduation projects.",
+-  },
+-
+-  {
+-    title: "Graduated with Honors",
+-    note: "Computer Engineering at AIET, CGPA 3.81/4.0, ranked 3rd in class.",
+-  },
+-
+-  {
+-    title: "Led an 11-Member Team",
+-    note: "Led a multidisciplinary graduation-project team across frontend, backend, AI/ML, UI/UX, database, and QA.",
+-  },
+-
+-  {
+-    title: "Competitive Programming",
+-    note: "ECPC participant in 2023 and 2024; placed 39th among 450+ teams in ECPC 2024.",
+-  },
+-
+-  {
+-    title: "Problem-Solving Mentor",
+-    note: "Delivered 20+ C++ and algorithms sessions through Microsoft Club Community - AIET.",
+-  },
++  { title: "First Place - Geniuses Forum Competition", note: "Won with **Drago**, my graduation project." },
++  { title: "9th Place - NTRA Graduation Projects Competition 2026", note: "Drago placed **9th** among **60+** graduation projects." },
++  { title: "Graduated with Honors", note: "Computer Engineering at AIET, **CGPA 3.81/4.0**, ranked **3rd** in class." },
++  { title: "Led an 11-Member Team", note: "Led a **multidisciplinary** graduation-project team across frontend, backend, AI/ML, UI/UX, database, and QA." },
++  { title: "Competitive Programming", note: "ECPC participant in 2023 and 2024; placed **39th** among **450+ teams** in ECPC 2024." },
++  { title: "Problem-Solving Mentor", note: "Delivered **20+** C++ and algorithms sessions through Microsoft Club Community - AIET." },
+ ];
+ 
++// The certificates scroll past as a film strip at the bottom of the page.
++// Add as many as you like: image = "images/certificates/depi.png"
+ export const CERTIFICATES = [
+-  {
+-    title: "Full Stack Web Development",
+-    issuer: "Digital Egypt Pioneers Initiative (DEPI) - MCIT",
+-    image: null,
+-  },
+-
+-  {
+-    title: "Software Development Training",
+-    issuer: "Egypt Experts for Software & Hardware (EES)",
+-    image: null,
+-  },
+-
+-  {
+-    title: "Certificate title",
+-    issuer: "Issuing organization",
+-    image: null,
+-  },
++  { title: "Full Stack Web Development", issuer: "Digital Egypt Pioneers Initiative (DEPI) - MCIT", image: null },
++  { title: "Software Development Training", issuer: "Egypt Experts for Software & Hardware (EES)", image: null },
++  { title: "Certificate title", issuer: "Issuing organization", image: null },
+ ];
+ 
+ export const CONTACT = {
+   location: "Alexandria, Egypt",
+-
+-  phone: {
+-    label: "+20 12 1204 9270",
+-    href: "tel:+201212049270",
+-  },
+-
++  phone: { label: "+20 12 1204 9270", href: "tel:+201212049270" },
+   email: "habibamohamed3880@gmail.com",
+-
+-  github: {
+-    label: "Habiba0079",
+-    href: "https://github.com/Habiba0079",
+-  },
+-
++  github: { label: "Habiba0079", href: "https://github.com/Habiba0079" },
+   linkedin: {
+     label: "in/habiba-mohamed-47764525b",
+     href: "https://www.linkedin.com/in/habiba-mohamed-47764525b",
+diff --git a/src/hooks/useRunway.js b/src/hooks/useRunway.js
+index e92d0fe..34c1d9f 100644
+--- a/src/hooks/useRunway.js
++++ b/src/hooks/useRunway.js
+@@ -15,9 +15,11 @@ export function useRunway(ids) {
+       frame = 0;
+       const y = window.scrollY;
+       const vh = window.innerHeight;
+-      // Sections land 4.5rem below the top when you jump to them (see .level scroll-margin-top),
+-      // so measure from that line: the character then stops exactly on the flag.
+-      const offset = parseFloat(getComputedStyle(document.documentElement).fontSize) * 4.5 + 6;
++      // Sections land at their scroll-margin-top when you jump to them, so measure
++      // from that line: the character then stops exactly on the flag.
++      const first = document.getElementById(ids[1]);
++      const margin = first ? parseFloat(getComputedStyle(first).scrollMarginTop) || 0 : 0;
++      const offset = margin + 6;
+       const ref = y + offset;
+       const n = ids.length;
+       const tops = ids.map((id, k) => {
+diff --git a/src/hooks/useTypewriter.js b/src/hooks/useTypewriter.js
+index a0a44dc..49cd4d1 100644
+--- a/src/hooks/useTypewriter.js
++++ b/src/hooks/useTypewriter.js
+@@ -1,12 +1,11 @@
+ import { useEffect, useState } from 'react';
+ 
+-// Types text out one character at a time while `active` is true.
+-export function useTypewriter(text, active, speed = 14) {
++// Counts up to `total` characters, one every `speed` ms, while `active` is true.
++export function useTypedCount(total, active, speed = 18) {
+   const [count, setCount] = useState(0);
+ 
+   useEffect(() => {
+     if (!active) return undefined;
+-    const total = Array.from(text).length;
+     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+       setCount(total);
+       return undefined;
+@@ -19,7 +18,7 @@ export function useTypewriter(text, active, speed = 14) {
+       if (i >= total) clearInterval(id);
+     }, speed);
+     return () => clearInterval(id);
+-  }, [active, text, speed]);
++  }, [active, total, speed]);
+ 
+-  return Array.from(text).slice(0, count).join('');
++  return count;
+ }
+diff --git a/src/main.jsx b/src/main.jsx
+index f505325..c9c8da6 100644
+--- a/src/main.jsx
++++ b/src/main.jsx
+@@ -4,6 +4,7 @@ import App from './App.jsx';
+ import './styles/base.css';
+ import './styles/hero.css';
+ import './styles/sections.css';
++import './styles/arcade.css';
+ import './styles/runner.css';
+ 
+ createRoot(document.getElementById('root')).render(
+diff --git a/src/pixel/sprites.js b/src/pixel/sprites.js
+index 0884acf..cd583bc 100644
+--- a/src/pixel/sprites.js
++++ b/src/pixel/sprites.js
+@@ -22,7 +22,7 @@ export function gridToRects(rows, palette) {
+ 
+ /* The character is a 16 x 20 pixel grid.
+    Letters: h hair, s skin, e eye, p blush, m mouth, o outfit, a accent,
+-   d dark hem, b boots. Props: n cap, y gold, g steel, q white, k dark, z screen, w paper. */
++   d dark hem, b boots. Props: n cap, y gold, g steel, q white, k dark, z screen, w paper, c leather. */
+ const blank = '.'.repeat(16);
+ 
+ const BODY = [
+@@ -67,6 +67,12 @@ const PROPS = {
+   }),
+   trophy: layer({ 0: '...yyyyyyyyyy...', 1: '.....yyyyyy.....', 2: '......yyyy......' }),
+   letter: layer({ 12: '...........wwww.', 13: '...........wkkw.', 14: '...........wwww.' }),
++  briefcase: layer({
++    14: '............kk..',
++    15: '...........cccc.',
++    16: '...........cyyc.',
++    17: '...........cccc.',
++  }),
+ };
+ 
+ export const PALETTE = {
+@@ -86,6 +92,7 @@ export const PALETTE = {
+   k: '#1a1030',
+   z: '#5ee0ff',
+   w: '#f5efe4',
++  c: '#a5622a',
+ };
+ 
+ export const RAW = { frames: Object.fromEntries(Object.entries(LEGS).map(([k, l]) => [k, frame(l)])), props: PROPS };
+diff --git a/src/sections.js b/src/sections.js
+index 4540d09..0eb953c 100644
+--- a/src/sections.js
++++ b/src/sections.js
+@@ -1,11 +1,12 @@
+-// The checkpoints along the level. `prop` is what the character holds in each one.
++// The checkpoints along the level, in the same order as the page. `prop` is what the character holds in each one.
+ export const SECTIONS = [
+   { id: 'top', label: 'Start', world: 'Start', prop: null },
+   { id: 'education', label: 'Education', world: '1-1', prop: 'cap' },
+-  { id: 'skills', label: 'Skills', world: '1-2', prop: 'sword' },
++  { id: 'experience', label: 'Experience', world: '1-2', prop: 'briefcase' },
+   { id: 'projects', label: 'Projects', world: '1-3', prop: 'laptop' },
+   { id: 'trophies', label: 'Trophies', world: '1-4', prop: 'trophy' },
+-  { id: 'contact', label: 'Contact', world: '1-5', prop: 'letter' },
++  { id: 'skills', label: 'Skills', world: '1-5', prop: 'sword' },
++  { id: 'contact', label: 'Contact', world: '1-6', prop: 'letter' },
+ ];
+ 
+ export const SECTION_IDS = SECTIONS.map((s) => s.id);
+diff --git a/src/styles/arcade.css b/src/styles/arcade.css
+new file mode 100644
+index 0000000..81dacb2
+--- /dev/null
++++ b/src/styles/arcade.css
+@@ -0,0 +1,465 @@
++/* ---------- The project arcade ----------
++   Screen and blurb on the left, joystick and buttons on the right, so you can
++   press the controls and watch the screen at the same time. */
++.arcade {
++  position: relative;
++  display: grid;
++  grid-template-columns: minmax(0, 1fr) 15.5rem;
++  grid-template-areas:
++    "screen controls"
++    "info controls";
++  gap: 1rem 1.5rem;
++  align-items: start;
++  max-width: 1040px;
++  margin-inline: auto;
++  padding: clamp(0.75rem, 2vw, 1.25rem);
++  background: var(--card);
++  border: 4px solid var(--light);
++  box-shadow: 8px 8px 0 var(--shadow);
++}
++.arcade:focus-visible {
++  outline: 3px solid var(--coin);
++  outline-offset: 6px;
++}
++.arcade-screen {
++  grid-area: screen;
++  min-width: 0;
++}
++.arcade-info {
++  grid-area: info;
++  display: grid;
++  gap: 0.5rem;
++  min-width: 0;
++}
++.controls {
++  grid-area: controls;
++  display: grid;
++  align-content: start;
++  justify-items: center;
++  gap: 1.25rem;
++  padding: 1.25rem 1rem;
++  background: #2e2650;
++  border: 4px solid #1c1636;
++}
++@media (max-width: 899px) {
++  .arcade {
++    grid-template-columns: minmax(0, 1fr);
++    grid-template-areas:
++      "screen"
++      "controls"
++      "info";
++  }
++  .controls {
++    grid-template-columns: auto minmax(0, 1fr);
++    justify-items: stretch;
++    align-items: center;
++    gap: 0.75rem 0.5rem;
++    padding: 0.75rem;
++  }
++  .buttons {
++    justify-content: flex-end;
++  }
++  .controls-links {
++    grid-column: 1 / -1;
++    grid-template-columns: 1fr 1fr;
++  }
++}
++
++/* Screen */
++.bezel {
++  padding: clamp(8px, 1.6vw, 16px);
++  background: #0a1226;
++  border: 4px solid #05070f;
++  box-shadow: inset 0 0 0 4px #1b2a4a;
++}
++.screen {
++  position: relative;
++  overflow: hidden;
++  aspect-ratio: 16 / 9;
++  margin-inline: auto;
++  /* never taller than what fits on screen next to the blurb */
++  width: min(100%, calc((100vh - 22rem) * 16 / 9));
++  width: min(100%, calc((100svh - 22rem) * 16 / 9));
++  background: #050b18;
++  border-radius: 10px;
++  touch-action: pan-y;
++  user-select: none;
++}
++@media (max-width: 899px) {
++  .screen {
++    width: 100%;
++    aspect-ratio: 16 / 10;
++  }
++}
++.screen-inner {
++  position: absolute;
++  inset: 0;
++}
++.screen-inner.flick {
++  animation: screen-on 0.3s steps(4);
++}
++@keyframes screen-on {
++  0% { filter: brightness(2.4) contrast(1.5); opacity: 0.4; }
++  50% { filter: brightness(1.5); opacity: 0.85; }
++  100% { filter: none; opacity: 1; }
++}
++.media {
++  position: absolute;
++  inset: 0;
++  background: #050b18;
++}
++.media.dim {
++  filter: brightness(0.4) saturate(0.8);
++}
++.shot {
++  position: absolute;
++  inset: 0;
++  display: block;
++  width: 100%;
++  height: 100%;
++  object-fit: contain; /* the whole screenshot is always visible */
++}
++.crt {
++  position: absolute;
++  inset: 0;
++  pointer-events: none;
++  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.1) 2px 3px);
++  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.4);
++}
++
++/* Empty slot: a test card */
++.nosignal {
++  position: absolute;
++  inset: 0;
++  display: grid;
++  place-items: center;
++  background: #0b1a33;
++}
++.bars {
++  position: absolute;
++  left: 0;
++  right: 0;
++  top: 0;
++  height: 72%;
++  opacity: 0.5;
++  background: linear-gradient(
++    90deg,
++    #c8c8c8 0 14.28%,
++    #c8c800 0 28.56%,
++    #00c8c8 0 42.84%,
++    #00c800 0 57.12%,
++    #c800c8 0 71.4%,
++    #c80000 0 85.68%,
++    #0000c8 0 100%
++  );
++}
++.nosignal-box {
++  position: relative;
++  z-index: 1;
++  display: grid;
++  gap: 0.7rem;
++  max-width: 90%;
++  padding: 0.9rem 1.1rem;
++  text-align: center;
++  background: rgba(12, 33, 65, 0.92);
++  border: 4px solid var(--light);
++}
++.nosignal-title {
++  font-family: var(--pixel);
++  font-size: clamp(0.55rem, 1.8vw, 0.8rem);
++  color: var(--light);
++}
++.nosignal-hint {
++  font-family: var(--pixel);
++  font-size: clamp(0.42rem, 1.2vw, 0.55rem);
++  line-height: 1.6;
++  color: var(--star);
++  overflow-wrap: anywhere;
++}
++
++/* Game select */
++.menu {
++  position: absolute;
++  inset: 0;
++  display: grid;
++  align-content: center;
++  justify-items: start;
++  gap: clamp(0.5rem, 1.8vw, 1rem);
++  padding: clamp(0.75rem, 4%, 2.5rem);
++}
++.menu-title {
++  margin: 0;
++  font-family: var(--pixel);
++  font-size: clamp(0.6rem, 1.8vw, 0.95rem);
++  color: var(--headers);
++  text-shadow: 3px 3px 0 #000;
++}
++.menu-list {
++  display: grid;
++  gap: 0.4rem;
++  margin: 0;
++  padding: 0;
++  list-style: none;
++}
++.menu-item {
++  display: flex;
++  align-items: center;
++  gap: 0.8rem;
++  padding: 0.45rem 0.9rem 0.45rem 0.5rem;
++  font-family: var(--pixel);
++  font-size: clamp(0.65rem, 2.2vw, 1.15rem);
++  text-align: left;
++  color: var(--light);
++  background: rgba(12, 33, 65, 0.85);
++  border: 3px solid transparent;
++  cursor: pointer;
++}
++.menu-item[aria-current="true"] {
++  color: var(--coin);
++  border-color: var(--coin);
++}
++.cursor {
++  width: 0;
++  height: 0;
++  border-top: 0.45em solid transparent;
++  border-bottom: 0.45em solid transparent;
++  border-left: 0.7em solid var(--coin);
++  visibility: hidden;
++}
++.menu-item[aria-current="true"] .cursor {
++  visibility: visible;
++}
++.menu-hint {
++  margin: 0;
++  font-family: var(--pixel);
++  font-size: clamp(0.45rem, 1.2vw, 0.6rem);
++  color: var(--star);
++  text-shadow: 2px 2px 0 #000;
++  animation: blink 1.2s steps(2) infinite;
++}
++
++/* Playing */
++.screen-tag,
++.screen-count {
++  position: absolute;
++  top: 10px;
++  padding: 0.4rem 0.55rem;
++  font-family: var(--pixel);
++  font-size: clamp(0.45rem, 1.2vw, 0.6rem);
++  line-height: 1;
++  text-transform: uppercase;
++}
++.screen-tag {
++  left: 10px;
++  color: var(--block-line);
++  background: var(--block);
++  border: 3px solid var(--block-line);
++}
++.screen-count {
++  right: 10px;
++  color: var(--light);
++  background: rgba(12, 33, 65, 0.85);
++  border: 3px solid var(--light);
++}
++.screen-dots {
++  position: absolute;
++  left: 0;
++  right: 0;
++  bottom: 10px;
++  display: flex;
++  justify-content: center;
++  gap: 8px;
++}
++.screen-dots i {
++  width: 9px;
++  height: 9px;
++  background: rgba(245, 239, 228, 0.35);
++  border: 2px solid rgba(0, 0, 0, 0.6);
++}
++.screen-dots i.on {
++  background: var(--coin);
++}
++
++/* ---------- Blurb under the screen ---------- */
++.info-head {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: baseline;
++  justify-content: space-between;
++  gap: 0.25rem 1rem;
++}
++.info-title {
++  margin: 0;
++  font-family: var(--pixel);
++  font-weight: 400;
++  font-size: clamp(0.95rem, 2.4vw, 1.35rem);
++  line-height: 1.3;
++  color: var(--headers);
++  text-shadow: 3px 3px 0 var(--shadow);
++}
++.info-status {
++  margin: 0;
++  font-family: var(--pixel);
++  font-size: 0.55rem;
++  text-transform: uppercase;
++  color: var(--star);
++}
++.info-line {
++  margin: 0;
++  font-size: 1.45rem;
++  line-height: 1.2;
++}
++.arcade-info .tags {
++  margin: 0.25rem 0 0;
++}
++.arcade-info .tag {
++  font-size: 0.5rem;
++  padding: 0.4rem 0.5rem;
++}
++
++/* ---------- Controls ---------- */
++.controls-links {
++  display: grid;
++  gap: 0.6rem;
++  width: 100%;
++}
++.controls-links .pixel-link {
++  padding: 0.85rem 0.6rem;
++  font-size: 0.7rem;
++  text-align: center;
++}
++
++/* Joystick */
++.stick {
++  position: relative;
++  width: 9.5rem;
++  height: 9.5rem;
++}
++.stick-base {
++  position: absolute;
++  inset: 1.6rem;
++  display: grid;
++  place-items: center;
++  border-radius: 50%;
++  background: radial-gradient(circle at 35% 30%, #3b3560, #16122e);
++  border: 4px solid #0d0a20;
++}
++.stick-ball {
++  width: 3.2rem;
++  height: 3.2rem;
++  border-radius: 50%;
++  background: radial-gradient(circle at 35% 30%, #ff8a8f, #e5484d 60%, #8f1d24);
++  border: 4px solid #4a0d12;
++  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
++  transition: transform 0.08s;
++}
++.stick[data-tilt="up"] .stick-ball { transform: translate(0, -12px); }
++.stick[data-tilt="down"] .stick-ball { transform: translate(0, 12px); }
++.stick[data-tilt="left"] .stick-ball { transform: translate(-12px, 0); }
++.stick[data-tilt="right"] .stick-ball { transform: translate(12px, 0); }
++.dir {
++  position: absolute;
++  display: grid;
++  place-items: center;
++  width: 2.5rem;
++  height: 2.5rem;
++  padding: 0;
++  background: #1c1636;
++  border: 3px solid #0d0a20;
++  cursor: pointer;
++}
++.dir:hover {
++  background: var(--card);
++}
++.dir:active {
++  transform: translateY(2px);
++}
++.dir-up { top: 0; left: 50%; margin-left: -1.25rem; }
++.dir-down { bottom: 0; left: 50%; margin-left: -1.25rem; }
++.dir-left { left: 0; top: 50%; margin-top: -1.25rem; }
++.dir-right { right: 0; top: 50%; margin-top: -1.25rem; }
++.arrow {
++  width: 0;
++  height: 0;
++  border: 0.5rem solid transparent;
++}
++.dir-up .arrow { border-top: 0; border-bottom: 0.75rem solid var(--light); }
++.dir-down .arrow { border-bottom: 0; border-top: 0.75rem solid var(--light); }
++.dir-left .arrow { border-left: 0; border-right: 0.75rem solid var(--light); }
++.dir-right .arrow { border-right: 0; border-left: 0.75rem solid var(--light); }
++@media (max-width: 899px) {
++  .stick {
++    width: 8.25rem;
++    height: 8.25rem;
++  }
++  .stick-base {
++    inset: 1.4rem;
++  }
++  .stick-ball {
++    width: 2.6rem;
++    height: 2.6rem;
++  }
++  .dir {
++    width: 2.25rem;
++    height: 2.25rem;
++  }
++  .dir-up, .dir-down { margin-left: -1.125rem; }
++  .dir-left, .dir-right { margin-top: -1.125rem; }
++}
++
++/* A and B */
++.buttons {
++  display: flex;
++  align-items: flex-end;
++  justify-content: center;
++  gap: 1.25rem;
++}
++.abtn {
++  display: grid;
++  justify-items: center;
++  gap: 0.6rem;
++  padding: 0;
++  font-family: var(--pixel);
++  font-size: 0.5rem;
++  text-transform: uppercase;
++  color: var(--light);
++  background: none;
++  border: 0;
++  cursor: pointer;
++}
++.abtn-cap {
++  display: grid;
++  place-items: center;
++  width: 3.8rem;
++  height: 3.8rem;
++  border-radius: 50%;
++  font-size: 1rem;
++  color: #fff;
++  border: 4px solid #0d0a20;
++  box-shadow: 0 6px 0 #0d0a20;
++  transition: transform 0.06s, box-shadow 0.06s;
++}
++.abtn--a .abtn-cap {
++  background: radial-gradient(circle at 35% 30%, #ff8a8f, #e5484d 60%, #8f1d24);
++}
++.abtn--b .abtn-cap {
++  color: #5a3a00;
++  background: radial-gradient(circle at 35% 30%, #fff2a8, #ffd84a 60%, #b8860b);
++}
++.abtn:active:not(:disabled) .abtn-cap {
++  transform: translateY(4px);
++  box-shadow: 0 2px 0 #0d0a20;
++}
++.abtn:disabled {
++  opacity: 0.45;
++  cursor: default;
++}
++@media (max-width: 899px) {
++  .abtn-cap {
++    width: 3.3rem;
++    height: 3.3rem;
++  }
++  .buttons {
++    gap: 0.9rem;
++  }
++}
+diff --git a/src/styles/base.css b/src/styles/base.css
+index 4d2b71f..6e6e297 100644
+--- a/src/styles/base.css
++++ b/src/styles/base.css
+@@ -45,7 +45,7 @@ body {
+   line-height: 1.35;
+   letter-spacing: 0.3px;
+   -webkit-font-smoothing: antialiased;
+-  padding-bottom: 16px; /* keeps the runway from covering the last line */
++  padding-bottom: 12px; /* keeps the runway from covering the last line */
+ }
+ 
+ :focus-visible {
+@@ -98,9 +98,7 @@ body {
+   height: 72px;
+   background: var(--block);
+   border: 4px solid var(--block-line);
+-  box-shadow:
+-    inset 4px 4px 0 #ffe08a,
+-    inset -4px -4px 0 var(--block-dark);
++  box-shadow: inset 4px 4px 0 #ffe08a, inset -4px -4px 0 var(--block-dark);
+ }
+ .qblock--small {
+   width: 48px;
+@@ -116,6 +114,7 @@ body {
+ .qblock--small .qmark {
+   font-size: 1.1rem;
+ }
++
+ .slot--image {
+   aspect-ratio: 16 / 9;
+   overflow: hidden;
+@@ -127,11 +126,8 @@ body {
+   display: block;
+ }
+ 
+-/* Sticky game HUD */
++/* Game HUD */
+ .hud {
+-  position: sticky;
+-  top: 0;
+-  z-index: 30;
+   display: flex;
+   justify-content: space-between;
+   gap: 1rem;
+@@ -163,9 +159,7 @@ body {
+ .reveal {
+   opacity: 0;
+   transform: translateY(24px);
+-  transition:
+-    opacity 0.6s steps(6),
+-    transform 0.6s steps(6);
++  transition: opacity 0.6s steps(6), transform 0.6s steps(6);
+ }
+ .reveal.is-visible {
+   opacity: 1;
+diff --git a/src/styles/hero.css b/src/styles/hero.css
+index 3af2908..f96efe7 100644
+--- a/src/styles/hero.css
++++ b/src/styles/hero.css
+@@ -126,8 +126,38 @@
+   border: 4px solid var(--light);
+   box-shadow: inset -4px -4px 0 var(--shadow);
+ }
+-.dialog p {
++.dialog-list {
++  display: grid;
++  gap: 0.6rem;
+   margin: 0;
++  padding: 0;
++  list-style: none;
++}
++.dialog-list li {
++  position: relative;
++  padding-left: 1.5rem;
++}
++.dialog-list li::before {
++  content: "";
++  position: absolute;
++  left: 0;
++  top: 0.55em;
++  width: 8px;
++  height: 8px;
++  background: var(--brick);
++  opacity: 0;
++}
++.dialog-list li.on::before {
++  opacity: 1;
++}
++.dialog-list .ghost {
++  visibility: hidden;
++}
++.dialog-list .typed {
++  position: absolute;
++  left: 1.5rem;
++  right: 0;
++  top: 0;
+ }
+ .caret {
+   display: inline-block;
+diff --git a/src/styles/runner.css b/src/styles/runner.css
+index f8eea09..37eb1aa 100644
+--- a/src/styles/runner.css
++++ b/src/styles/runner.css
+@@ -13,8 +13,8 @@
+   left: 0;
+   right: 0;
+   bottom: 0;
+-  height: 16px;
+-  background-size: 32px 32px;
++  height: 12px;
++  background-size: 24px 24px;
+ }
+ .checkpoints {
+   margin: 0;
+@@ -23,7 +23,7 @@
+ }
+ .cp-item {
+   position: absolute;
+-  bottom: 16px;
++  bottom: 12px;
+   left: calc(4% + var(--i) * 92%);
+   transform: translateX(-50%);
+ }
+@@ -32,8 +32,8 @@
+ .cp {
+   position: relative;
+   display: block;
+-  width: 44px;
+-  height: 56px;
++  width: 38px;
++  height: 46px;
+   pointer-events: auto;
+   color: var(--light);
+   text-decoration: none;
+@@ -43,15 +43,15 @@
+   left: calc(50% - 2px);
+   bottom: 0;
+   width: 4px;
+-  height: 44px;
++  height: 34px;
+   background: var(--light);
+ }
+ .cp-flag {
+   position: absolute;
+   left: calc(50% + 2px);
+-  top: 12px;
+-  width: 18px;
+-  height: 14px;
++  top: 8px;
++  width: 14px;
++  height: 11px;
+   background: var(--pipe);
+   clip-path: polygon(0 0, 100% 50%, 0 100%);
+ }
+@@ -59,15 +59,15 @@
+   background: var(--coin);
+ }
+ .cp--goal {
+-  height: 88px;
++  height: 70px;
+ }
+ .cp--goal .cp-pole {
+-  height: 76px;
++  height: 58px;
+ }
+ .cp--goal .cp-flag {
+-  top: 12px;
+-  width: 26px;
+-  height: 20px;
++  top: 8px;
++  width: 20px;
++  height: 15px;
+ }
+ .cp--goal .cp-pole::before {
+   content: "";
+@@ -82,16 +82,16 @@
+ .cp-coin {
+   position: absolute;
+   left: calc(50% - 6px);
+-  top: -6px;
+-  width: 12px;
+-  height: 18px;
++  top: -8px;
++  width: 10px;
++  height: 14px;
+   background: var(--coin);
+   border: 3px solid var(--block-line);
+   border-radius: 50%;
+   animation: coin-float 1.2s steps(1) infinite;
+ }
+ .cp--goal .cp-coin {
+-  top: -22px;
++  top: -20px;
+ }
+ @keyframes coin-float {
+   50% {
+@@ -133,11 +133,11 @@
+ /* ---------- The character ---------- */
+ .runner {
+   position: absolute;
+-  bottom: 16px;
++  bottom: 12px;
+   left: calc(4% + var(--x) * 92%);
+-  width: 80px;
+-  height: 100px;
+-  margin-left: -40px;
++  width: 64px;
++  height: 80px;
++  margin-left: -32px;
+   transition: left 0.12s linear;
+   pointer-events: none;
+ }
+@@ -201,7 +201,7 @@
+ }
+ @keyframes jump {
+   0% { transform: translateY(0); }
+-  50% { transform: translateY(-70px); }
++  50% { transform: translateY(-56px); }
+   100% { transform: translateY(0); }
+ }
+ 
+@@ -251,11 +251,11 @@
+ 
+ @media (max-width: 600px) {
+   .runner {
+-    width: 64px;
+-    height: 80px;
+-    margin-left: -32px;
++    width: 48px;
++    height: 60px;
++    margin-left: -24px;
+   }
+   .cp {
+-    width: 40px;
++    width: 34px;
+   }
+ }
+diff --git a/src/styles/sections.css b/src/styles/sections.css
+index 6e2e648..a782380 100644
+--- a/src/styles/sections.css
++++ b/src/styles/sections.css
+@@ -5,17 +5,19 @@
+ 
+ /* ---------- Level frame ---------- */
+ .level {
+-  padding-top: clamp(3rem, 7vw, 5rem);
+-  scroll-margin-top: 4.5rem;
++  padding-top: clamp(2.5rem, 6vw, 4rem);
++  scroll-margin-top: 1rem;
+ }
+ .level + .level {
+   margin-top: clamp(2rem, 5vw, 4rem);
+ }
+ .level-head {
+-  display: grid;
+-  justify-items: center;
+-  gap: 1.25rem;
+-  margin-bottom: 2.5rem;
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  justify-content: center;
++  gap: 0.75rem 1.25rem;
++  margin-bottom: 1.5rem;
+   text-align: center;
+ }
+ .world {
+@@ -32,6 +34,7 @@
+   width: min(1280px, 100% - 2rem);
+ }
+ .level-sub {
++  flex-basis: 100%;
+   margin: 0;
+   font-size: clamp(1.3rem, 3vw, 1.7rem);
+   color: var(--star);
+@@ -114,6 +117,13 @@
+   color: var(--headers);
+ }
+ 
++/* ---------- Highlighted keywords ---------- */
++.kw {
++  color: var(--star);
++  font-weight: 600;
++  background: none;
++}
++
+ /* ---------- Glitch text ---------- */
+ .glitch {
+   position: relative;
+@@ -143,27 +153,23 @@
+   .glitch-b {
+     animation: glitch-b 6s steps(1) infinite;
+   }
+-  .cv-heading .glitch-a,
+-  .cv-heading .glitch-b {
+-    animation-delay: -3s;
+-  }
+   .glitch:hover .glitch-a,
+-  .cv-entry:hover .glitch-a {
++  .quest:hover .glitch-a {
+     animation: glitch-hover-a 0.35s steps(1) infinite;
+   }
+   .glitch:hover .glitch-b,
+-  .cv-entry:hover .glitch-b {
++  .quest:hover .glitch-b {
+     animation: glitch-hover-b 0.35s steps(1) infinite;
+   }
+ }
+ @media (prefers-reduced-motion: reduce) {
+   .glitch:hover .glitch-a,
+-  .cv-entry:hover .glitch-a {
++  .quest:hover .glitch-a {
+     opacity: 0.85;
+     transform: translate(-2px, 0);
+   }
+   .glitch:hover .glitch-b,
+-  .cv-entry:hover .glitch-b {
++  .quest:hover .glitch-b {
+     opacity: 0.85;
+     transform: translate(2px, 0);
+   }
+@@ -193,150 +199,115 @@
+   66% { opacity: 1; transform: translate(2px, 1px); clip-path: inset(35% 0 25% 0); }
+ }
+ 
+-/* ---------- Education: the CV sheet ---------- */
+-.cv {
+-  --ink: #16213a;
+-  --ink-soft: #3b4560;
+-  --cv-accent: #4a3b8f;
++/* ---------- Education and experience: game-window cards ---------- */
++.quest-list {
++  display: grid;
++  gap: 2rem;
++}
++.quest {
+   position: relative;
+   overflow: hidden;
+-  padding: clamp(1.25rem, 4vw, 2.75rem);
+-  color: var(--ink);
+-  background: var(--light);
+-  border: 4px solid var(--light);
+-  box-shadow: 8px 8px 0 var(--shadow);
+ }
+-.cv::before {
++.quest::after {
+   content: "";
+   position: absolute;
+   inset: 0;
+   pointer-events: none;
+-  background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(22, 33, 58, 0.05) 3px 4px);
++  background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(255, 255, 255, 0.025) 3px 4px);
+ }
+-.cv-bar {
++.scan {
+   position: absolute;
+   left: 0;
+   right: 0;
+   top: 20%;
+-  height: 10px;
++  z-index: 1;
++  height: 8px;
+   opacity: 0;
+   pointer-events: none;
+-  background: linear-gradient(90deg, rgba(255, 46, 136, 0.5) 0 35%, rgba(0, 229, 255, 0.5) 35% 100%);
+-  mix-blend-mode: multiply;
++  background: linear-gradient(90deg, rgba(255, 46, 136, 0.4) 0 35%, rgba(0, 229, 255, 0.4) 35% 100%);
++  mix-blend-mode: screen;
+ }
+ @media (prefers-reduced-motion: no-preference) {
+-  .cv-bar {
+-    animation: cv-bar 7s steps(1) infinite;
++  .scan {
++    animation: scan 7s steps(1) infinite;
+   }
++  .quest-list .quest:nth-child(2) .scan { animation-delay: -2.3s; }
++  .quest-list .quest:nth-child(3) .scan { animation-delay: -4.6s; }
+ }
+-@keyframes cv-bar {
++@keyframes scan {
+   0%, 92%, 100% { opacity: 0; }
+   93% { opacity: 1; top: 30%; }
+-  94% { opacity: 1; top: 64%; }
+-  95% { opacity: 1; top: 46%; }
++  94% { opacity: 1; top: 70%; }
++  95% { opacity: 1; top: 48%; }
+   96% { opacity: 0; }
+ }
+-.cv-head {
+-  display: flex;
+-  flex-wrap: wrap;
+-  align-items: flex-end;
+-  justify-content: space-between;
+-  gap: 0.75rem 2rem;
+-  margin-bottom: 2rem;
+-  padding-bottom: 1.25rem;
+-  border-bottom: 4px solid var(--ink);
+-}
+-.cv-name {
+-  margin: 0;
+-  font-family: var(--pixel);
+-  font-weight: 400;
+-  font-size: clamp(1.2rem, 4vw, 2rem);
+-  line-height: 1.3;
+-}
+-.cv-role {
+-  margin: 0.5rem 0 0;
+-  font-size: 1.5rem;
+-  color: var(--cv-accent);
+-}
+-.cv-meta {
+-  margin: 0;
+-  font-size: 1.2rem;
+-  text-align: right;
+-  color: var(--ink-soft);
+-  overflow-wrap: anywhere;
++.quest .panel-title {
++  font-size: 0.75rem;
+ }
+-.cv-cols {
++.quest-body {
+   display: grid;
+-  gap: 2.5rem 3rem;
+-  grid-template-columns: minmax(0, 1fr);
++  gap: 1.5rem 2.5rem;
++  padding: clamp(1rem, 3vw, 1.75rem);
+ }
+ @media (min-width: 900px) {
+-  .cv-cols {
+-    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
++  .quest:not(.quest--compact) .quest-body {
++    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+   }
+ }
+-.cv-heading {
+-  margin: 0 0 1.5rem;
+-  font-family: var(--pixel);
+-  font-weight: 400;
+-  font-size: 0.9rem;
+-  line-height: 1.5;
+-  text-transform: uppercase;
+-  color: var(--cv-accent);
+-}
+-.timeline {
+-  margin: 0;
+-  padding: 0 0 0 1.5rem;
+-  list-style: none;
+-  border-left: 4px solid var(--ink);
+-}
+-.cv-entry {
+-  position: relative;
+-  padding-bottom: 1.6rem;
+-}
+-.cv-entry:last-child {
+-  padding-bottom: 0;
++.quest-head {
++  display: flex;
++  align-items: flex-start;
++  gap: 1rem;
++  min-width: 0;
+ }
+-.cv-entry::before {
+-  content: "";
+-  position: absolute;
+-  left: calc(-1.5rem - 8px);
+-  top: 0.4rem;
+-  width: 12px;
+-  height: 12px;
+-  background: var(--brick);
+-  border: 3px solid var(--ink);
++.quest-id {
++  min-width: 0;
+ }
+-.cv-period {
+-  display: block;
+-  margin-bottom: 0.35rem;
++.quest-title {
++  margin: 0;
+   font-family: var(--pixel);
+-  font-size: 0.6rem;
++  font-weight: 400;
++  font-size: clamp(0.85rem, 2vw, 1.05rem);
+   line-height: 1.6;
+-  color: #8a3a1c;
++  color: var(--headers);
++  text-shadow: 3px 3px 0 var(--shadow);
+ }
+-.cv-title {
+-  margin: 0;
+-  font-size: 1.55rem;
+-  font-weight: 600;
++.quest-badge {
++  display: inline-block;
++  margin-top: 0.6rem;
++  padding: 0.4rem 0.55rem;
++  font-family: var(--pixel);
++  font-size: 0.55rem;
++  line-height: 1;
++  text-transform: uppercase;
++  color: var(--block-line);
++  background: var(--block);
++  border: 3px solid var(--block-line);
++}
++.quest-org {
++  margin: 0.6rem 0 0;
++  font-size: 1.5rem;
+   line-height: 1.15;
++  color: var(--light);
+ }
+-.cv-sub {
+-  margin: 0.2rem 0 0;
+-  color: var(--ink-soft);
++.quest-place {
++  margin: 0.15rem 0 0;
++  color: var(--star);
+ }
+-.cv-points {
++.quest-points {
+   display: grid;
+-  gap: 0.4rem;
+-  margin: 0.7rem 0 0;
++  gap: 0.7rem;
++  margin: 0;
+   padding: 0;
+   list-style: none;
++  font-size: 1.4rem;
++  line-height: 1.25;
+ }
+-.cv-points li {
++.quest-points li {
+   position: relative;
+-  padding-left: 1.2rem;
++  padding-left: 1.5rem;
+ }
+-.cv-points li::before {
++.quest-points li::before {
+   content: "";
+   position: absolute;
+   left: 0;
+@@ -345,6 +316,55 @@
+   height: 8px;
+   background: var(--brick);
+ }
++.quest-tools {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  gap: 0.6rem 0.75rem;
++  margin-top: 1.25rem;
++  padding-top: 1rem;
++  border-top: 2px dashed var(--dim);
++}
++.quest-tools-label {
++  font-family: var(--pixel);
++  font-size: 0.55rem;
++  text-transform: uppercase;
++  color: var(--star);
++}
++.quest-tools .tags {
++  margin: 0;
++}
++.logo {
++  display: grid;
++  flex: none;
++  place-items: center;
++  width: 64px;
++  height: 64px;
++  overflow: hidden;
++  background: var(--sky-deep);
++  border: 4px solid var(--light);
++}
++.logo img {
++  width: 100%;
++  height: 100%;
++  padding: 6px;
++  object-fit: contain;
++}
++.logo-initials {
++  font-family: var(--pixel);
++  font-size: 0.6rem;
++  line-height: 1.2;
++  text-align: center;
++  color: var(--star);
++}
++.comp-grid {
++  display: grid;
++  gap: 2rem;
++  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
++}
++.quest--compact .quest-points {
++  font-size: 1.3rem;
++}
+ 
+ /* ---------- Skills: the loadout ---------- */
+ .loadout {
+@@ -714,17 +734,87 @@
+   fill: var(--star);
+ }
+ 
++/* ---------- Certificates: a film strip that just rolls past ---------- */
++.strip {
++  margin-top: clamp(3rem, 7vw, 5rem);
++}
++.strip-title {
++  margin: 0 0 1.25rem;
++  font-family: var(--pixel);
++  font-weight: 400;
++  font-size: clamp(0.8rem, 2.2vw, 1.1rem);
++  text-align: center;
++  color: var(--headers);
++  text-shadow: 3px 3px 0 var(--shadow);
++}
++.strip-film {
++  background: #070b16;
++  border-block: 4px solid #000;
++}
++.strip-holes {
++  height: 24px;
++  background: #070b16 linear-gradient(90deg, #cfc8b4 0 14px, transparent 14px) 9px 7px / 32px 10px repeat-x;
++}
++.strip-window {
++  overflow: hidden;
++}
++.strip-track {
++  display: flex;
++  gap: 16px;
++  width: max-content;
++  padding: 12px 0;
++  animation: strip 70s linear infinite;
++}
++.strip-film:hover .strip-track {
++  animation-play-state: paused;
++}
++@keyframes strip {
++  to { transform: translateX(-50%); }
++}
++.frame {
++  flex: none;
++  width: clamp(190px, 22vw, 280px);
++  margin: 0;
++}
++.frame-shot {
++  display: grid;
++  place-items: center;
++  aspect-ratio: 4 / 3;
++  overflow: hidden;
++  background: #101a30;
++  border: 3px solid #cfc8b4;
++}
++.frame-shot img {
++  width: 100%;
++  height: 100%;
++  object-fit: contain;
++}
++.frame figcaption {
++  margin-top: 0.4rem;
++  overflow: hidden;
++  font-size: 1.1rem;
++  line-height: 1.1;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++  color: rgba(245, 239, 228, 0.75);
++}
++@media (prefers-reduced-motion: reduce) {
++  .strip-window {
++    overflow-x: auto;
++  }
++}
++
+ /* ---------- Ending ---------- */
+ .end {
+-  margin-top: clamp(3rem, 8vw, 5rem);
+-  padding-bottom: clamp(5rem, 14vw, 9rem);
++  margin-top: 2rem;
++  padding-bottom: clamp(4.5rem, 12vw, 6rem);
+   text-align: center;
+ }
+ .end-text {
+   margin: 0;
+   padding: 0 1rem;
+   font-family: var(--pixel);
+-  font-size: clamp(0.65rem, 2vw, 0.85rem);
++  font-size: clamp(0.6rem, 1.8vw, 0.8rem);
+   line-height: 2.2;
+   color: var(--headers);
+ }
