@@ -7,6 +7,25 @@ import { PROJECTS } from '../data.js';
 
 const wrap = (i, n) => (i + n) % n;
 
+// YouTube and Google Drive links are embedded; anything else is played as a video file.
+function embedUrl(src) {
+  const yt = src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0`;
+  const drive = src.match(/drive\.google\.com\/file\/d\/([\w-]+)/);
+  if (drive) return `https://drive.google.com/file/d/${drive[1]}/preview`;
+  return null;
+}
+
+// A project shows a video only when its `display` is "video" and it has a video source.
+function getVideo(project) {
+  if (project.display !== 'video' || !project.video) return null;
+  const v = typeof project.video === 'string' ? { src: project.video } : project.video;
+  if (!v.src) return null;
+  return { src: v.src, poster: v.poster || null, embed: /^https?:\/\//.test(v.src) ? embedUrl(v.src) : null };
+}
+
+const previewOf = (project) => getVideo(project)?.poster || project.images.find(Boolean) || null;
+
 // Shown on the arcade screen until a real image is added.
 function NoSignal({ hint }) {
   return (
@@ -20,8 +39,8 @@ function NoSignal({ hint }) {
   );
 }
 
-function Media({ project, index, dim = false }) {
-  const url = resolveImage(project.images[index]);
+function Picture({ project, src, index, dim = false }) {
+  const url = resolveImage(src);
   return (
     <div className={`media${dim ? ' dim' : ''}`}>
       {url ? (
@@ -34,9 +53,10 @@ function Media({ project, index, dim = false }) {
 }
 
 function Menu({ game, onPick }) {
+  const project = PROJECTS[game];
   return (
     <>
-      <Media project={PROJECTS[game]} index={0} dim />
+      <Picture project={project} src={previewOf(project)} index={0} dim />
       <div className="menu">
         <p className="menu-title">Select game</p>
         <ol className="menu-list">
@@ -55,10 +75,10 @@ function Menu({ game, onPick }) {
   );
 }
 
-function Play({ project, slide }) {
+function Slides({ project, slide }) {
   return (
     <>
-      <Media project={project} index={slide} />
+      <Picture project={project} src={project.images[slide]} index={slide} />
       <span className="screen-tag">{project.title}</span>
       <span className="screen-count">
         {slide + 1}/{project.images.length}
@@ -72,7 +92,41 @@ function Play({ project, slide }) {
   );
 }
 
-// The project arcade: pick a game with the joystick, start it, then flip through its screenshots.
+function Movie({ project, video, videoRef }) {
+  return (
+    <>
+      <div className="media">
+        {video.embed ? (
+          <iframe
+            className="shot"
+            src={video.embed}
+            title={`${project.title} demo video`}
+            allow="fullscreen; picture-in-picture; encrypted-media"
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            className="shot"
+            src={resolveImage(video.src)}
+            poster={resolveImage(video.poster) || undefined}
+            controls
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+        )}
+      </div>
+      <span className="screen-tag">{project.title}</span>
+    </>
+  );
+}
+
+// The project arcade: pick a game with the joystick, start it, then flip through its screenshots
+// (or watch its video, for projects set to display "video").
 export default function Projects() {
   const [mode, setMode] = useState('menu'); // 'menu' | 'play'
   const [game, setGame] = useState(0);
@@ -81,12 +135,20 @@ export default function Projects() {
   const [tilt, setTilt] = useState(null);
   const tiltTimer = useRef();
   const swipe = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => () => clearTimeout(tiltTimer.current), []);
 
   const project = PROJECTS[game];
-  const count = project.images.length;
+  const video = getVideo(project);
+  const fileVideo = video && !video.embed;
+  const count = Math.max(1, project.images.length);
   const bump = () => setFlash((n) => n + 1);
+
+  // Starting a game with a video file plays it (muted, so the browser allows it).
+  useEffect(() => {
+    if (mode === 'play' && fileVideo) videoRef.current?.play()?.catch(() => {});
+  }, [mode, game, fileVideo]);
 
   const goGame = (delta) => {
     setGame((g) => wrap(g + delta, PROJECTS.length));
@@ -107,16 +169,33 @@ export default function Projects() {
     setMode('menu');
     bump();
   };
+  const seek = (seconds) => {
+    const el = videoRef.current;
+    if (el) el.currentTime = Math.max(0, el.currentTime + seconds);
+  };
+  const togglePlay = () => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (el.paused) el.play().catch(() => {});
+    else el.pause();
+  };
 
   const press = (dir) => {
     setTilt(dir);
     clearTimeout(tiltTimer.current);
     tiltTimer.current = setTimeout(() => setTilt(null), 160);
-    if (mode === 'menu') goGame(dir === 'up' || dir === 'left' ? -1 : 1);
+    const prev = dir === 'up' || dir === 'left';
+    if (mode === 'menu') goGame(prev ? -1 : 1);
+    else if (fileVideo && (dir === 'left' || dir === 'right')) seek(dir === 'left' ? -5 : 5);
+    else if (video) goGame(prev ? -1 : 1); // an embedded video can't be seeked from here
     else if (dir === 'left' || dir === 'right') goSlide(dir === 'left' ? -1 : 1);
     else goGame(dir === 'up' ? -1 : 1);
   };
-  const pressA = () => (mode === 'menu' ? start() : goSlide(1));
+  const pressA = () => {
+    if (mode === 'menu') start();
+    else if (fileVideo) togglePlay();
+    else if (!video) goSlide(1);
+  };
 
   const onKeyDown = (event) => {
     const dirs = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
@@ -132,9 +211,9 @@ export default function Projects() {
     }
   };
 
-  // Swipe on the screen works like the joystick (left/right).
+  // Swipe on the screen works like the joystick (left/right), except over a video.
   const onPointerDown = (event) => {
-    swipe.current = event.clientX;
+    swipe.current = mode === 'play' && video ? null : event.clientX;
   };
   const onPointerUp = (event) => {
     if (swipe.current === null) return;
@@ -146,7 +225,14 @@ export default function Projects() {
   const labels =
     mode === 'menu'
       ? { up: 'Previous game', down: 'Next game', left: 'Previous game', right: 'Next game' }
-      : { up: 'Previous game', down: 'Next game', left: 'Previous image', right: 'Next image' };
+      : fileVideo
+        ? { up: 'Previous game', down: 'Next game', left: 'Rewind 5 seconds', right: 'Forward 5 seconds' }
+        : video
+          ? { up: 'Previous game', down: 'Next game', left: 'Previous game', right: 'Next game' }
+          : { up: 'Previous game', down: 'Next game', left: 'Previous image', right: 'Next image' };
+
+  const status = mode === 'menu' ? 'Select game' : video ? 'Video' : `Playing ${slide + 1}/${count}`;
+  const aLabel = mode === 'menu' ? 'Start' : fileVideo ? 'Play' : video ? 'Start' : 'Next';
 
   return (
     <Level id="projects" world="1-3" title="Projects" wide>
@@ -159,17 +245,27 @@ export default function Projects() {
         onKeyDown={onKeyDown}
       >
         <p className="sr-only" id="arcade-help">
-          Use the arrow keys to move, Enter to start a game and Escape to go back to the game list.
+          Use the arrow keys to move, Enter to start a game or play a video, and Escape to go back to the game list.
         </p>
         <p className="sr-only" aria-live="polite">
-          {mode === 'play' ? `${project.title}, image ${slide + 1} of ${count}` : `Selected ${project.title}`}
+          {mode === 'play'
+            ? video
+              ? `${project.title}, demo video`
+              : `${project.title}, image ${slide + 1} of ${count}`
+            : `Selected ${project.title}`}
         </p>
 
         <div className="arcade-screen">
           <div className="bezel">
             <div className="screen" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
               <div className="screen-inner flick" key={flash}>
-                {mode === 'menu' ? <Menu game={game} onPick={start} /> : <Play project={project} slide={slide} />}
+                {mode === 'menu' ? (
+                  <Menu game={game} onPick={start} />
+                ) : video ? (
+                  <Movie project={project} video={video} videoRef={videoRef} />
+                ) : (
+                  <Slides project={project} slide={slide} />
+                )}
               </div>
               <div className="crt" aria-hidden="true" />
             </div>
@@ -179,7 +275,7 @@ export default function Projects() {
         <div className="arcade-info">
           <div className="info-head">
             <h3 className="info-title">{project.title}</h3>
-            <p className="info-status">{mode === 'play' ? `Playing ${slide + 1}/${count}` : 'Select game'}</p>
+            <p className="info-status">{status}</p>
           </div>
           <p className="info-line">
             <Keywords>{project.tagline}</Keywords>
@@ -205,10 +301,10 @@ export default function Projects() {
               type="button"
               className="abtn abtn--a"
               onClick={pressA}
-              aria-label={mode === 'menu' ? 'A: start game' : 'A: next image'}
+              aria-label={mode === 'menu' ? 'A: start game' : fileVideo ? 'A: play or pause' : 'A: next image'}
             >
               <span className="abtn-cap">A</span>
-              <span>{mode === 'menu' ? 'Start' : 'Next'}</span>
+              <span>{aLabel}</span>
             </button>
           </div>
 

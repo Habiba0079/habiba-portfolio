@@ -4,7 +4,6 @@ import Hero from './components/Hero.jsx';
 import Education from './components/Education.jsx';
 import Experience from './components/Experience.jsx';
 import Projects from './components/Projects.jsx';
-// import Trophies from './components/Trophies.jsx';
 import Participation from './components/Participation.jsx';
 import Skills from './components/Skills.jsx';
 import Contact from './components/Contact.jsx';

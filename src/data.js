@@ -36,20 +36,37 @@ export const CV = {
       place: "Alexandria, Egypt",
       short: "AIET",
       logo: "images/logo/AIET.png",
-      points: [
-        "**CGPA 3.81 / 4.0**",
-        "**Top Student**",
-        "ranked **3rd** in class, graduated with **honors**",
-      ],
-      DragoLogo: null,
-      graduationProject: [
-        "Drago",
-        "Graduation project **Drago**, an AI-powered educational platform for children with dyslexia",
-        "**Team Leader & Frontend Developer** of an **11-member** multidisciplinary team",
-      ],
+      plate: "light", // "light" or "dark": the plate behind a logo (pick the one it reads best on)
+
+      // Shown as the shiny bronze medal.
+      medal: {
+        rank: "3rd",
+        rankLabel: "in class",
+        gpaLabel: "CGPA",
+        gpa: "3.81 / 4.0",
+        badges: ["**Top Student**", "Graduated with **honors**"],
+      },
+
+      // Shown next to the medal. `logo` is optional (e.g. "images/logo/drago.png").
+      graduationProject: {
+        name: "Drago",
+        logo: null,
+        lead: "**Led** the project as **Team Leader & Frontend Developer** of an **11-member** team",
+        grade: "Excellent",
+        // The awards Drago won. Set locked: true to show a mystery slot until you add the text.
+        awards: [
+          { title: "1st Place", event: "Geniuses Forum Competition" },
+          { title: "9th Place", event: "NTRA Graduation Projects Competition 2026", detail: "Among 60+ projects" },
+          { title: "???", event: "Locked", locked: true },
+        ],
+      },
     },
   ],
 
+  // "oldest-first" makes level 1 the earliest experience; use "newest-first" to flip the map.
+  mapOrder: "oldest-first",
+
+  // The map shows only the period, the logo and `note`. The longer points and tools stay here for later.
   experience: [
     {
       period: "Feb 2025 - Apr 2026",
@@ -58,6 +75,8 @@ export const CV = {
       place: "Alexandria, Egypt",
       short: "MSC",
       logo: "images/logo/Microsoft.png",
+      plate: "dark",
+      note: "**C++ & Algorithms** instructor and problem-solving **mentor**, 20+ sessions",
       points: [
         "Delivered **20+ technical sessions** on **Data Structures**, **Algorithms**, and **C++**, helping students improve **problem-solving** and **debugging** skills",
         "**Mentored** students preparing for **competitive programming** contests by reviewing solutions and teaching **optimization** techniques",
@@ -79,6 +98,8 @@ export const CV = {
       place: "Alexandria, Egypt",
       short: "EES",
       logo: "images/logo/EES.png",
+      plate: "dark",
+      note: "**Software Engineering** trainee: ERP system, **Distinction** grade",
       points: [
         "Developed **GreenLeaf Restaurant & Farm**, an **ERP-based** restaurant management system using **SQL**, **Oracle Database**, **REST APIs**, and **JSON**, earning an **Excellent** evaluation",
         "Presented the system and **ERP integration** approach, earning a **Distinction** for the training program",
@@ -93,30 +114,13 @@ export const CV = {
       place: "Hybrid",
       short: "DEPI",
       logo: "images/logo/depiEN.png",
+      plate: "light",
+      note: "**Full-Stack Web Development** trainee: React.js, Node.js, MERN capstone",
       points: [
         "Built web applications using **React.js** and **Node.js**, developing **reusable components** and integrating **backend APIs**",
         "**Capstone Project:** collaborated on a **MERN stack** task management application, implementing **frontend features** and **API-driven workflows**",
       ],
       tools: ["React.js", "Node.js", "MongoDB", "Git & GitHub"],
-    },
-  ],
-
-  competitions: [
-    {
-      period: "2023, 2024",
-      title: "ECPC Participant",
-      org: "Egyptian Collegiate Programming Contest",
-      short: "ECPC",
-      logo: null,
-      points: ["**39th place** among **450+ teams** in ECPC 2024"],
-    },
-    {
-      period: "2024",
-      title: "Participant",
-      org: "NASA Space Apps Challenge",
-      short: "NASA",
-      logo: "images/logo/Nasa.png",
-      points: ["Member of **Team Scrat**"],
     },
   ],
 };
@@ -377,6 +381,11 @@ export const PROJECTS = [
       "images/projects/DragoLanding.png",
       "images/projects/DragoVolcano.png",
     ],
+    // What the arcade screen shows: "images" (slideshow) or "video".
+    // For video, put a file in public/videos/ and use its path (e.g. "videos/demo.mp4"),
+    // or paste a YouTube / Google Drive / direct .mp4 link. `poster` is an optional cover image.
+    display: "images",
+    video: null, // e.g. { src: "videos/drago-demo.mp4", poster: "images/projects/DragoGames.png" }
     links: {
       live: "https://drago-frontend.vercel.app",
       code: "https://github.com/Drago-project/drago-frontend",
@@ -389,6 +398,11 @@ export const PROJECTS = [
       "Responsive **dashboard** with dynamic **charts**, filtering and interactive UI, built at **DEPI**.",
     tags: ["React", "JavaScript", "Bootstrap", "MongoDB", "Node.js"],
     images: [null, null, null], // e.g. "images/projects/tasky-1.png"
+    // What the arcade screen shows: "images" (slideshow) or "video".
+    // For video, put a file in public/videos/ and use its path (e.g. "videos/demo.mp4"),
+    // or paste a YouTube / Google Drive / direct .mp4 link. `poster` is an optional cover image.
+    display: "images",
+    video: null, // e.g. { src: "videos/drago-demo.mp4", poster: "images/projects/DragoGames.png" }
     links: {
       live: "https://taskyy.up.railway.app",
       code: "https://github.com/Habiba0079/Tasky-task-management-system-DEPI-Finale",
@@ -401,6 +415,11 @@ export const PROJECTS = [
       "**Full-stack** booking system with a responsive UI, **relational database** and a **Flask** backend.",
     tags: ["Bootstrap", "Flask", "MySQL"],
     images: [null, null, null], // e.g. "images/projects/airline-1.png"
+    // What the arcade screen shows: "images" (slideshow) or "video".
+    // For video, put a file in public/videos/ and use its path (e.g. "videos/demo.mp4"),
+    // or paste a YouTube / Google Drive / direct .mp4 link. `poster` is an optional cover image.
+    display: "images",
+    video: null, // e.g. { src: "videos/drago-demo.mp4", poster: "images/projects/DragoGames.png" }
     links: {
       live: "",
       code: "https://github.com/Habiba0079/Airline-Company-Booking-System-project",
@@ -408,31 +427,13 @@ export const PROJECTS = [
   },
 ];
 
-export const TROPHIES = [
-  {
-    title: "First Place - Geniuses Forum Competition",
-    note: "Won with **Drago**, my graduation project.",
-  },
-  {
-    title: "9th Place - NTRA Graduation Projects Competition 2026",
-    note: "Drago placed **9th** among **60+** graduation projects.",
-  },
-  {
-    title: "Graduated with Honors",
-    note: "Computer Engineering at AIET, **CGPA 3.81/4.0**, ranked **3rd** in class.",
-  },
-  {
-    title: "Led an 11-Member Team",
-    note: "Led a **multidisciplinary** graduation-project team across frontend, backend, AI/ML, UI/UX, database, and QA.",
-  },
-  {
-    title: "Competitive Programming",
-    note: "ECPC participant in 2023 and 2024; placed **39th** among **450+ teams** in ECPC 2024.",
-  },
-  {
-    title: "Problem-Solving Mentor",
-    note: "Delivered **20+** C++ and algorithms sessions through Microsoft Club Community - AIET.",
-  },
+// Participation: only a logo or a name, no text. `plate` ("light" or "dark") is the plate behind the logo.
+export const PARTICIPATION = [
+  { name: "NASA Space Apps Challenge", logo: "images/logo/Nasa.png", plate: "dark" },
+  { name: "ECPC", logo: "images/logo/ECPC.jfif", plate: "light" },
+  { name: "NTRA", logo: null },
+  { name: "ISF", logo: null },
+  { name: "5th Environmental Forum (2023)", logo: null },
 ];
 
 // The certificates scroll past as a film strip at the bottom of the page.

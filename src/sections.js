@@ -4,7 +4,7 @@ export const SECTIONS = [
   { id: 'education', label: 'Education', world: '1-1', prop: 'cap' },
   { id: 'experience', label: 'Experience', world: '1-2', prop: 'briefcase' },
   { id: 'projects', label: 'Projects', world: '1-3', prop: 'laptop' },
-  { id: 'trophies', label: 'Trophies', world: '1-4', prop: 'trophy' },
+  { id: 'participation', label: 'Participation', world: '1-4', prop: 'trophy' },
   { id: 'skills', label: 'Skills', world: '1-5', prop: 'sword' },
   { id: 'contact', label: 'Contact', world: '1-6', prop: 'letter' },
 ];

@@ -56,6 +56,7 @@ export default function Skills() {
               tabIndex={tab === t.id ? 0 : -1}
               onClick={() => chooseTab(t.id)}
             >
+              {t.id !== 'all' && <i className="tab-dot" style={{ background: SKILL_TYPES[t.id].color }} aria-hidden="true" />}
               {t.label}
               <span className="tab-count">{countFor(t.id)}</span>
             </button>
@@ -90,7 +91,7 @@ export default function Skills() {
                 >
                   <PixelArt icon={skill.icon} />
                   <span className="slot-name">{skill.name}</span>
-                  <span className="slot-kind">{SKILL_TYPES[skill.type].label}</span>
+                  <span className="sr-only">{SKILL_TYPES[skill.type].label}</span>
                 </button>
               </li>
             ))}
