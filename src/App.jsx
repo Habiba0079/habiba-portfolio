@@ -4,7 +4,7 @@ import Hero from './components/Hero.jsx';
 import Education from './components/Education.jsx';
 import Experience from './components/Experience.jsx';
 import Projects from './components/Projects.jsx';
-import Trophies from './components/Trophies.jsx';
+// import Trophies from './components/Trophies.jsx';
 import Skills from './components/Skills.jsx';
 import Contact from './components/Contact.jsx';
 import CertificateStrip from './components/CertificateStrip.jsx';
@@ -42,11 +42,11 @@ export default function App() {
         <Education />
         <Experience />
         <Projects />
-        <Trophies />
+        <Prticipation />
         <Skills />
+        <CertificateStrip />
         <Contact />
       </main>
-      <CertificateStrip />
       <Ending />
       <Runner collected={collected} onReach={reach} />
     </>
