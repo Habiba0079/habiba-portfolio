@@ -50,13 +50,17 @@ export const CV = {
       // Shown next to the medal. `logo` is optional (e.g. "images/logo/drago.png").
       graduationProject: {
         name: "Drago",
-        logo: null,
+        logo: "images/logo/drago.png",
         lead: "**Led** the project as **Team Leader & Frontend Developer** of an **11-member** team",
         grade: "Excellent",
         // The awards Drago won. Set locked: true to show a mystery slot until you add the text.
         awards: [
           { title: "1st Place", event: "Geniuses Forum Competition" },
-          { title: "9th Place", event: "NTRA Graduation Projects Competition 2026", detail: "Among 60+ projects" },
+          {
+            title: "9th Place",
+            event: "NTRA Graduation Projects Competition 2026",
+            detail: "Among 60+ projects",
+          },
           { title: "???", event: "Locked", locked: true },
         ],
       },
@@ -369,12 +373,14 @@ export const PROJECTS = [
       "**AI-powered** learning platform for children with **dyslexia**. I led the team and built the **frontend**.",
     tags: [
       "React",
-      "JavaScript",
+      "Vite",
+      "i18next",
+      "PWA",
+      "JWT authentication",
       "ASP.NET Core",
       "SQL Server",
       "SignalR",
-      "Faster-Whisper",
-      "PWA",
+      "AI integration",
     ],
     images: [
       "images/projects/DragoGames.png",
@@ -384,8 +390,8 @@ export const PROJECTS = [
     // What the arcade screen shows: "images" (slideshow) or "video".
     // For video, put a file in public/videos/ and use its path (e.g. "videos/demo.mp4"),
     // or paste a YouTube / Google Drive / direct .mp4 link. `poster` is an optional cover image.
-    display: "images",
-    video: null, // e.g. { src: "videos/drago-demo.mp4", poster: "images/projects/DragoGames.png" }
+    display: "video",
+    video: "videos/DEMO.mp4", // e.g. { src: "videos/drago-demo.mp4", poster: "images/projects/DragoGames.png" }
     links: {
       live: "https://drago-frontend.vercel.app",
       code: "https://github.com/Drago-project/drago-frontend",
@@ -396,15 +402,22 @@ export const PROJECTS = [
     title: "Tasky Dashboard",
     tagline:
       "Responsive **dashboard** with dynamic **charts**, filtering and interactive UI, built at **DEPI**.",
-    tags: ["React", "JavaScript", "Bootstrap", "MongoDB", "Node.js"],
-    images: [null, null, null], // e.g. "images/projects/tasky-1.png"
+    tags: ["React", "MongoDB", "Node.js", "Material-UI", "Next.js"],
+    images: [
+      "images/projects/TaskyLanding.png",
+      "images/projects/Tasky3.png",
+      "images/projects/Tasky1.png",
+      "images/projects/Tasky5.png",
+      "images/projects/Tasky4.png",
+      "images/projects/Tasky2.png",
+    ], // e.g. "images/projects/tasky-1.png"
     // What the arcade screen shows: "images" (slideshow) or "video".
     // For video, put a file in public/videos/ and use its path (e.g. "videos/demo.mp4"),
     // or paste a YouTube / Google Drive / direct .mp4 link. `poster` is an optional cover image.
     display: "images",
     video: null, // e.g. { src: "videos/drago-demo.mp4", poster: "images/projects/DragoGames.png" }
     links: {
-      live: "https://taskyy.up.railway.app",
+      live: "https://taskyfrontend.vercel.app/",
       code: "https://github.com/Habiba0079/Tasky-task-management-system-DEPI-Finale",
     },
   },
@@ -429,11 +442,15 @@ export const PROJECTS = [
 
 // Participation: only a logo or a name, no text. `plate` ("light" or "dark") is the plate behind the logo.
 export const PARTICIPATION = [
-  { name: "NASA Space Apps Challenge", logo: "images/logo/Nasa.png", plate: "dark" },
+  {
+    name: "NASA Space Apps Challenge",
+    logo: "images/logo/Nasa.png",
+    plate: "dark",
+  },
   { name: "ECPC", logo: "images/logo/ECPC.jfif", plate: "light" },
-  { name: "NTRA", logo: null },
-  { name: "ISF", logo: null },
-  { name: "5th Environmental Forum (2023)", logo: null },
+  // { name: "NTRA", logo: "images/logo/NTRA_Logo.svg", plate: "light" },
+  // { name: "ISF", logo: null },
+  // { name: "5th Environmental Forum (2023)", logo: null },
 ];
 
 // The certificates scroll past as a film strip at the bottom of the page.

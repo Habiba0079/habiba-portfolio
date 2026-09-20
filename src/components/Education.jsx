@@ -66,7 +66,7 @@ export default function Education() {
           <p className="panel-title">Graduation project</p>
           <div className="panel-body drago">
             <div className="drago-brand">
-              <Logo src={project.logo} short={project.name} name={project.name} size="lg" className="logo--drago" />
+              <Logo src={project.logo} short={project.name} name={project.name} size="xlg" className="logo--drago" />
               <p className="drago-lead">
                 <Keywords>{project.lead}</Keywords>
               </p>

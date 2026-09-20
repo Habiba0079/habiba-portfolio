@@ -236,8 +236,8 @@
   padding: 0.75rem;
 }
 .logo--drago {
-  background: #106861;
-  border-color: #f5efe4;
+  background: transparent;
+  border-color: #f5ebe4;
 }
 .logo--drago .logo-initials {
   font-size: 0.95rem;
