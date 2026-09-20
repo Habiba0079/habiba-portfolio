@@ -1,0 +1,184 @@
+diff --git a/src/components/Contact.jsx b/src/components/Contact.jsx
+index 7734004..05e3579 100644
+--- a/src/components/Contact.jsx
++++ b/src/components/Contact.jsx
+@@ -1,46 +1,43 @@
+ import Level from './Level.jsx';
+-import Panel from './Panel.jsx';
+ import ImageSlot from './ImageSlot.jsx';
+ import { PinIcon, PhoneIcon, MailIcon, GithubIcon, LinkedinIcon } from './Icons.jsx';
+ import { CONTACT, PROFILE } from '../data.js';
+ 
++// Just the contacts, with your picture beside them (also on phones).
+ export default function Contact() {
+   return (
+     <Level id="contact" world="1-6" title="Contact">
+-      <div className="contact-grid">
+-        <div className="player">
++      <div className="contact">
++        <div className="contact-photo">
+           <ImageSlot src={PROFILE.photo} alt={PROFILE.name} label="Your photo" ratio="1 / 1" />
+-          <span className="player-label">Player 1</span>
+         </div>
+ 
+-        <Panel title="Let's connect">
+-          <ul className="contact-list">
+-            <li>
+-              <PinIcon />
+-              <span>{CONTACT.location}</span>
+-            </li>
+-            <li>
+-              <PhoneIcon />
+-              <a href={CONTACT.phone.href}>{CONTACT.phone.label}</a>
+-            </li>
+-            <li>
+-              <MailIcon />
+-              <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+-            </li>
+-            <li>
+-              <GithubIcon />
+-              <a href={CONTACT.github.href} target="_blank" rel="noopener noreferrer">
+-                {CONTACT.github.label}
+-              </a>
+-            </li>
+-            <li>
+-              <LinkedinIcon />
+-              <a href={CONTACT.linkedin.href} target="_blank" rel="noopener noreferrer">
+-                {CONTACT.linkedin.label}
+-              </a>
+-            </li>
+-          </ul>
+-        </Panel>
++        <ul className="contact-list">
++          <li>
++            <PinIcon />
++            <span>{CONTACT.location}</span>
++          </li>
++          <li>
++            <PhoneIcon />
++            <a href={CONTACT.phone.href}>{CONTACT.phone.label}</a>
++          </li>
++          <li>
++            <MailIcon />
++            <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
++          </li>
++          <li>
++            <GithubIcon />
++            <a href={CONTACT.github.href} target="_blank" rel="noopener noreferrer">
++              {CONTACT.github.label}
++            </a>
++          </li>
++          <li>
++            <LinkedinIcon />
++            <a href={CONTACT.linkedin.href} target="_blank" rel="noopener noreferrer">
++              {CONTACT.linkedin.label}
++            </a>
++          </li>
++        </ul>
+       </div>
+     </Level>
+   );
+diff --git a/src/styles/sections.css b/src/styles/sections.css
+index 571fb01..f9c76c9 100644
+--- a/src/styles/sections.css
++++ b/src/styles/sections.css
+@@ -1014,43 +1014,39 @@
+ }
+ 
+ /* ---------- Contact ---------- */
+-.contact-grid {
+-  display: grid;
+-  gap: 2rem;
+-  grid-template-columns: minmax(0, 1fr);
+-}
+-@media (min-width: 800px) {
+-  .contact-grid {
+-    grid-template-columns: 14rem minmax(0, 1fr);
+-    align-items: start;
+-  }
++.contact {
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  gap: clamp(1rem, 4vw, 3rem);
++  max-width: 52rem;
++  margin-inline: auto;
+ }
+-.player {
+-  display: grid;
+-  justify-items: center;
+-  gap: 0.9rem;
+-  width: min(14rem, 100%);
++.contact-photo {
++  flex: none;
++  width: clamp(6.5rem, 24vw, 13rem);
+ }
+-.player-label {
+-  font-family: var(--pixel);
+-  font-size: 0.7rem;
+-  color: var(--headers);
++/* no frame around the picture here */
++.contact-photo .slot {
++  background: none;
++  border: 0;
++  overflow: visible;
+ }
+ .contact-list {
++  display: grid;
++  gap: 1rem;
++  min-width: 0;
+   margin: 0;
+   padding: 0;
+   list-style: none;
++  font-size: 1.6rem;
++  line-height: 1.15;
+ }
+ .contact-list li {
+-  display: grid;
+-  grid-template-columns: 2rem minmax(0, 1fr);
+-  gap: 1rem;
++  display: flex;
+   align-items: center;
+-  padding: 0.7rem 0;
+-  border-top: 2px dashed var(--dim);
+-}
+-.contact-list li:first-child {
+-  border-top: 0;
++  gap: 0.75rem;
++  min-width: 0;
+ }
+ .contact-list a {
+   overflow-wrap: anywhere;
+@@ -1060,10 +1056,30 @@
+   color: var(--coin);
+ }
+ .icon {
+-  width: 2rem;
+-  height: 2rem;
++  flex: none;
++  width: 1.9rem;
++  height: 1.9rem;
+   fill: var(--star);
+ }
++@media (max-width: 599px) {
++  .contact {
++    gap: 0.75rem;
++  }
++  .contact-photo {
++    width: 5.75rem;
++  }
++  .contact-list {
++    gap: 0.75rem;
++    font-size: 1.05rem;
++  }
++  .contact-list li {
++    gap: 0.5rem;
++  }
++  .icon {
++    width: 1.4rem;
++    height: 1.4rem;
++  }
++}
+ 
+ /* ---------- Certificates: a film strip that just rolls past ---------- */
+ .strip {

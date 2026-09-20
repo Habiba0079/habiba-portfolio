@@ -491,11 +491,11 @@ export const CERTIFICATES = [
 
 export const CONTACT = {
   location: "Alexandria, Egypt",
-  phone: { label: "+20 12 1204 9270", href: "tel:+201212049270" },
+  phone: { label: "+20 12 7065 1765", href: "tel:+201270651765" },
   email: "habibamohamed3880@gmail.com",
   github: { label: "Habiba0079", href: "https://github.com/Habiba0079" },
   linkedin: {
-    label: "in/habiba-mohamed-47764525b",
-    href: "https://www.linkedin.com/in/habiba-mohamed-47764525b",
+    label: "in/habiba-hamed-47764525b",
+    href: "https://www.linkedin.com/in/habiba-hamed-47764525b",
   },
 };
