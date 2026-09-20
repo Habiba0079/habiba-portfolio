@@ -22,7 +22,7 @@ export function gridToRects(rows, palette) {
 
 /* The character is a 16 x 20 pixel grid.
    Letters: h hair, s skin, e eye, p blush, m mouth, o outfit, a accent,
-   d dark hem, b boots. Props: n cap, y gold, g steel, q white, k dark, z screen, w paper. */
+   d dark hem, b boots. Props: n cap, y gold, g steel, q white, k dark, z screen, w paper, c leather. */
 const blank = '.'.repeat(16);
 
 const BODY = [
@@ -67,6 +67,12 @@ const PROPS = {
   }),
   trophy: layer({ 0: '...yyyyyyyyyy...', 1: '.....yyyyyy.....', 2: '......yyyy......' }),
   letter: layer({ 12: '...........wwww.', 13: '...........wkkw.', 14: '...........wwww.' }),
+  briefcase: layer({
+    14: '............kk..',
+    15: '...........cccc.',
+    16: '...........cyyc.',
+    17: '...........cccc.',
+  }),
 };
 
 export const PALETTE = {
@@ -86,6 +92,7 @@ export const PALETTE = {
   k: '#1a1030',
   z: '#5ee0ff',
   w: '#f5efe4',
+  c: '#a5622a',
 };
 
 export const RAW = { frames: Object.fromEntries(Object.entries(LEGS).map(([k, l]) => [k, frame(l)])), props: PROPS };

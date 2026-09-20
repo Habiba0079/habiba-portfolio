@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 
-// Types text out one character at a time while `active` is true.
-export function useTypewriter(text, active, speed = 14) {
+// Counts up to `total` characters, one every `speed` ms, while `active` is true.
+export function useTypedCount(total, active, speed = 18) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!active) return undefined;
-    const total = Array.from(text).length;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setCount(total);
       return undefined;
@@ -19,7 +18,7 @@ export function useTypewriter(text, active, speed = 14) {
       if (i >= total) clearInterval(id);
     }, speed);
     return () => clearInterval(id);
-  }, [active, text, speed]);
+  }, [active, total, speed]);
 
-  return Array.from(text).slice(0, count).join('');
+  return count;
 }

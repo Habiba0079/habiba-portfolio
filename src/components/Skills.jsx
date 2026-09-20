@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Level from './Level.jsx';
 import PixelArt from './PixelArt.jsx';
+import Keywords from './Keywords.jsx';
 import { SKILLS, SKILL_TYPES } from '../data.js';
 
 const TABS = [
@@ -38,7 +39,7 @@ export default function Skills() {
   };
 
   return (
-    <Level id="skills" world="1-2" title="Skills" subtitle="Choose your loadout" wide>
+    <Level id="skills" world="1-5" title="Skills" subtitle="Choose your loadout" wide>
       <article className="panel loadout">
         <h3 className="panel-title">Loadout</h3>
 
@@ -72,7 +73,9 @@ export default function Skills() {
               <span>{kind.gear}</span>
               <span>{selected.category}</span>
             </p>
-            <p className="equipped-desc">{selected.desc}</p>
+            <p className="equipped-desc">
+              <Keywords>{selected.desc}</Keywords>
+            </p>
           </aside>
 
           <ul className="slots">

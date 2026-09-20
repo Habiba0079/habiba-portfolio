@@ -15,9 +15,11 @@ export function useRunway(ids) {
       frame = 0;
       const y = window.scrollY;
       const vh = window.innerHeight;
-      // Sections land 4.5rem below the top when you jump to them (see .level scroll-margin-top),
-      // so measure from that line: the character then stops exactly on the flag.
-      const offset = parseFloat(getComputedStyle(document.documentElement).fontSize) * 4.5 + 6;
+      // Sections land at their scroll-margin-top when you jump to them, so measure
+      // from that line: the character then stops exactly on the flag.
+      const first = document.getElementById(ids[1]);
+      const margin = first ? parseFloat(getComputedStyle(first).scrollMarginTop) || 0 : 0;
+      const offset = margin + 6;
       const ref = y + offset;
       const n = ids.length;
       const tops = ids.map((id, k) => {

@@ -1,16 +1,16 @@
 // Shows an image, or an empty "?" slot when no image has been added yet.
-
 // `src` is a path inside /public, without a leading slash: 'images/projects/a.png'
+export function resolveImage(src) {
+  if (!src) return null;
+  if (/^(https?:)?\/\/|^data:/.test(src)) return src;
+  return `${import.meta.env.BASE_URL}${src.replace(/^\//, "")}`;
+}
 
-export default function ImageSlot({ src, alt, label }) {
-  const url = src
-    ? /^(https?:)?\/\//.test(src)
-      ? src
-      : `${import.meta.env.BASE_URL}${src.replace(/^\//, "")}`
-    : null;
+export default function ImageSlot({ src, alt, label, ratio = "16 / 9" }) {
+  const url = resolveImage(src);
 
   return (
-    <figure className={`slot ${url ? "slot--image" : "slot--empty"}`}>
+    <figure className={`slot ${url ? "slot--image" : "slot--empty"}`} style={{ aspectRatio: ratio }}>
       {url ? (
         <img src={url} alt={alt} loading="lazy" />
       ) : (

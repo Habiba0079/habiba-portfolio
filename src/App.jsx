@@ -2,10 +2,12 @@ import { useCallback, useState } from 'react';
 import Hud from './components/Hud.jsx';
 import Hero from './components/Hero.jsx';
 import Education from './components/Education.jsx';
-import Skills from './components/Skills.jsx';
+import Experience from './components/Experience.jsx';
 import Projects from './components/Projects.jsx';
 import Trophies from './components/Trophies.jsx';
+import Skills from './components/Skills.jsx';
 import Contact from './components/Contact.jsx';
+import CertificateStrip from './components/CertificateStrip.jsx';
 import Ending from './components/Ending.jsx';
 import Runner from './components/Runner.jsx';
 import { SECTIONS } from './sections.js';
@@ -38,11 +40,13 @@ export default function App() {
       <Hero />
       <main>
         <Education />
+        <Experience />
         <Projects />
         <Trophies />
         <Skills />
         <Contact />
       </main>
+      <CertificateStrip />
       <Ending />
       <Runner collected={collected} onReach={reach} />
     </>

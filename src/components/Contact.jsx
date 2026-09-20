@@ -6,7 +6,7 @@ import { CONTACT, PROFILE } from '../data.js';
 
 export default function Contact() {
   return (
-    <Level id="contact" world="1-4" title="Contact">
+    <Level id="contact" world="1-6" title="Contact">
       <div className="contact-grid">
         <div className="player">
           <ImageSlot src={PROFILE.photo} alt={PROFILE.name} label="Your photo" ratio="1 / 1" />

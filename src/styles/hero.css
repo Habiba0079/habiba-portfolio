@@ -126,8 +126,38 @@
   border: 4px solid var(--light);
   box-shadow: inset -4px -4px 0 var(--shadow);
 }
-.dialog p {
+.dialog-list {
+  display: grid;
+  gap: 0.6rem;
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dialog-list li {
+  position: relative;
+  padding-left: 1.5rem;
+}
+.dialog-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 8px;
+  height: 8px;
+  background: var(--brick);
+  opacity: 0;
+}
+.dialog-list li.on::before {
+  opacity: 1;
+}
+.dialog-list .ghost {
+  visibility: hidden;
+}
+.dialog-list .typed {
+  position: absolute;
+  left: 1.5rem;
+  right: 0;
+  top: 0;
 }
 .caret {
   display: inline-block;
