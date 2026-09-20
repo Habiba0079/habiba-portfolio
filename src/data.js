@@ -13,9 +13,12 @@ export const PROFILE = {
   // One bullet per line, typed out when you press Start.
   about: [
     "Hi! I'm **Habiba**, a **computer engineering** graduate.",
-    "I build responsive **web apps** with **React** and **JavaScript**.",
-    "**Team leader** and **frontend developer** of **Drago**, my graduation project.",
-    "**Drago** won **1st place** at the Geniuses Forum.",
+    "and I love **learning** and **building** things that make a difference.",
+    "I build responsive **web apps**.",
+    "I thrive in **team environments** and **collaborative projects**.",
+    "I enjoy **mentoring** and helping others grow their skills.",
+    // "**Team leader** and **frontend developer**",
+    // "I mentor students in **problem solving**, **C++**, and **algorithms**.",
   ],
 
   photo: "images/assets/avatar.png",
@@ -32,13 +35,17 @@ export const CV = {
       org: "Alexandria Higher Institute of Engineering and Technology (AIET)",
       place: "Alexandria, Egypt",
       short: "AIET",
-      logo: null,
+      logo: "images/logo/AIET.png",
       points: [
-        "**CGPA 3.81 / 4.0**, ranked **3rd** in class, graduated with **honors**",
+        "**CGPA 3.81 / 4.0**",
         "**Top Student**",
+        "ranked **3rd** in class, graduated with **honors**",
+      ],
+      DragoLogo: null,
+      graduationProject: [
+        "Drago",
         "Graduation project **Drago**, an AI-powered educational platform for children with dyslexia",
         "**Team Leader & Frontend Developer** of an **11-member** multidisciplinary team",
-        "Drago won **first place** at the Geniuses Forum Competition",
       ],
     },
   ],
@@ -50,7 +57,7 @@ export const CV = {
       org: "Microsoft Club Community - AIET",
       place: "Alexandria, Egypt",
       short: "MSC",
-      logo: null,
+      logo: "images/logo/Microsoft.png",
       points: [
         "Delivered **20+ technical sessions** on **Data Structures**, **Algorithms**, and **C++**, helping students improve **problem-solving** and **debugging** skills",
         "**Mentored** students preparing for **competitive programming** contests by reviewing solutions and teaching **optimization** techniques",
@@ -71,7 +78,7 @@ export const CV = {
       org: "Egypt Experts for Software & Hardware (EES)",
       place: "Alexandria, Egypt",
       short: "EES",
-      logo: null,
+      logo: "images/logo/EES.png",
       points: [
         "Developed **GreenLeaf Restaurant & Farm**, an **ERP-based** restaurant management system using **SQL**, **Oracle Database**, **REST APIs**, and **JSON**, earning an **Excellent** evaluation",
         "Presented the system and **ERP integration** approach, earning a **Distinction** for the training program",
@@ -85,7 +92,7 @@ export const CV = {
       org: "Digital Egypt Pioneers Initiative (DEPI)",
       place: "Hybrid",
       short: "DEPI",
-      logo: null,
+      logo: "images/logo/depiEN.png",
       points: [
         "Built web applications using **React.js** and **Node.js**, developing **reusable components** and integrating **backend APIs**",
         "**Capstone Project:** collaborated on a **MERN stack** task management application, implementing **frontend features** and **API-driven workflows**",
@@ -108,7 +115,7 @@ export const CV = {
       title: "Participant",
       org: "NASA Space Apps Challenge",
       short: "NASA",
-      logo: null,
+      logo: "images/logo/Nasa.png",
       points: ["Member of **Team Scrat**"],
     },
   ],
@@ -147,11 +154,59 @@ export const SKILL_TYPES = {
     gear: "Spell",
     color: "#7cc4ff",
   },
+  programming: {
+    label: "Programming language",
+    tab: "Programming",
+    gear: "Spell",
+    color: "#d6a2ff",
+  },
 };
 
 // Only technologies with hands-on development experience.
 // icon: sword, shield, hammer, wand, bomb, heart, bolt, hourglass, crown, bubble, book
 export const SKILLS = [
+  // Programming Languages
+  {
+    id: "c",
+    name: "C",
+    type: "programming",
+    category: "Programming",
+    icon: "bomb",
+    desc: "Programming fundamentals, memory concepts, and problem solving using C.",
+  },
+  {
+    id: "cpp",
+    name: "C++",
+    type: "programming",
+    category: "Programming",
+    icon: "bomb",
+    desc: "Data structures, algorithms, object-oriented programming, and competitive problem solving.",
+  },
+  {
+    id: "python",
+    name: "Python",
+    type: "programming",
+    category: "Programming",
+    icon: "bomb",
+    desc: "Programming, scripting, and problem solving using Python.",
+  },
+  {
+    id: "javascript",
+    name: "JavaScript",
+    type: "programming",
+    category: "Programming",
+    icon: "bomb",
+    desc: "Application logic, asynchronous programming, and interactive web development.",
+  },
+  {
+    id: "typescript",
+    name: "TypeScript",
+    type: "programming",
+    category: "Programming",
+    icon: "bomb",
+    desc: "Typed JavaScript development for structured and maintainable applications.",
+  },
+
   // Frontend
   {
     id: "react",
@@ -159,15 +214,7 @@ export const SKILLS = [
     type: "hard",
     category: "Frontend",
     icon: "sword",
-    desc: "Building **responsive** and **interactive** web interfaces with **reusable components**, **hooks**, **state handling**, and **API integration**.",
-  },
-  {
-    id: "javascript",
-    name: "JavaScript",
-    type: "hard",
-    category: "Frontend",
-    icon: "sword",
-    desc: "Application logic, **DOM** interaction, **asynchronous** operations, **API integration**, and interactive web interfaces.",
+    desc: "Building responsive and interactive web interfaces with reusable components, hooks, state handling, and API integration.",
   },
   {
     id: "html",
@@ -175,7 +222,7 @@ export const SKILLS = [
     type: "hard",
     category: "Frontend",
     icon: "sword",
-    desc: "**Semantic** page structure and **accessible** web interfaces.",
+    desc: "Semantic page structure and accessible web interfaces.",
   },
   {
     id: "css",
@@ -183,7 +230,7 @@ export const SKILLS = [
     type: "hard",
     category: "Frontend",
     icon: "sword",
-    desc: "**Responsive** layouts, **animations**, reusable styles, and **CSS Modules**.",
+    desc: "Responsive layouts, animations, reusable styles, and CSS Modules.",
   },
   {
     id: "bootstrap",
@@ -191,7 +238,31 @@ export const SKILLS = [
     type: "hard",
     category: "Frontend",
     icon: "sword",
-    desc: "**Responsive** layouts and reusable **UI components** for web applications.",
+    desc: "Responsive layouts and reusable UI components for web applications.",
+  },
+  {
+    id: "responsive-design",
+    name: "Responsive Design",
+    type: "hard",
+    category: "Frontend",
+    icon: "sword",
+    desc: "Creating responsive interfaces that adapt across desktop, tablet, and mobile screen sizes.",
+  },
+  {
+    id: "api-integration",
+    name: "API Integration",
+    type: "hard",
+    category: "Frontend",
+    icon: "shield",
+    desc: "Integrating frontend applications with REST APIs, handling asynchronous requests, and connecting UI flows with backend services.",
+  },
+  {
+    id: "i18next",
+    name: "i18next",
+    type: "hard",
+    category: "Frontend",
+    icon: "sword",
+    desc: "Implementing Arabic/English localization and RTL/LTR layouts in React applications.",
   },
 
   // Data
@@ -201,7 +272,7 @@ export const SKILLS = [
     type: "hard",
     category: "Data",
     icon: "shield",
-    desc: "Writing **queries** and working with **relational data** through academic, training, and project work.",
+    desc: "Writing queries and working with relational data through academic, training, and project work.",
   },
   {
     id: "mongodb",
@@ -209,35 +280,27 @@ export const SKILLS = [
     type: "hard",
     category: "Data",
     icon: "shield",
-    desc: "Working with **document-based data** in **full-stack** web development training and projects.",
+    desc: "Working with document-based data in web development training and projects.",
   },
 
-  // Programming and tools
-  {
-    id: "cpp",
-    name: "C++",
-    type: "hard",
-    category: "Programming",
-    icon: "bomb",
-    desc: "Programming, **data structures**, **algorithms**, and **competitive problem solving** through ECPC and mentoring.",
-  },
+  // Tools
   {
     id: "git",
     name: "Git & GitHub",
     type: "hard",
     category: "Tools",
     icon: "sword",
-    desc: "**Version control**, source-code management, **branching**, and **collaborative development**.",
+    desc: "Version control, source-code management, branching, and collaborative development.",
   },
 
-  // Soft skills
+  // Soft Skills
   {
     id: "teamwork",
     name: "Teamwork",
     type: "soft",
     category: "People",
     icon: "heart",
-    desc: "Worked within an **11-member** multidisciplinary team on Drago.",
+    desc: "Worked within an 11-member multidisciplinary team on Drago.",
   },
   {
     id: "leadership",
@@ -245,7 +308,7 @@ export const SKILLS = [
     type: "soft",
     category: "People",
     icon: "crown",
-    desc: "**Led** the Drago team and coordinated work across **frontend, backend, AI/ML, UI/UX, database, and QA**.",
+    desc: "Led the Drago team and coordinated work across frontend, backend, AI/ML, UI/UX, database, and QA.",
   },
   {
     id: "communication",
@@ -253,7 +316,7 @@ export const SKILLS = [
     type: "soft",
     category: "People",
     icon: "bubble",
-    desc: "**Presented** software projects, communicated with **supervisors** and teammates, and delivered **problem-solving sessions**.",
+    desc: "Presented software projects, communicated with supervisors and teammates, and delivered problem-solving sessions.",
   },
   {
     id: "problem-solving",
@@ -261,7 +324,7 @@ export const SKILLS = [
     type: "soft",
     category: "Mindset",
     icon: "bolt",
-    desc: "Breaking **complex problems** into practical steps, from programming challenges to **debugging** real applications.",
+    desc: "Breaking complex problems into practical steps, from programming challenges to debugging real applications.",
   },
   {
     id: "time",
@@ -269,17 +332,17 @@ export const SKILLS = [
     type: "soft",
     category: "Mindset",
     icon: "hourglass",
-    desc: "Balanced **academic work**, **internships**, **mentoring**, competitive programming, and a large **graduation project**.",
+    desc: "Balanced academic work, internships, mentoring, competitive programming, and a large graduation project.",
   },
 
-  // Languages
+  // Spoken Languages
   {
     id: "arabic",
     name: "Arabic",
     type: "language",
     category: "Spoken",
     icon: "book",
-    desc: "**Native** communication and the primary language used in **Drago** for its target learners.",
+    desc: "Native communication.",
   },
   {
     id: "english",
@@ -287,7 +350,7 @@ export const SKILLS = [
     type: "language",
     category: "Spoken",
     icon: "book",
-    desc: "**Technical**, **academic**, and **professional** communication.",
+    desc: "Technical, academic, and professional communication.",
   },
 ];
 
@@ -378,14 +441,34 @@ export const CERTIFICATES = [
   {
     title: "Full Stack Web Development",
     issuer: "Digital Egypt Pioneers Initiative (DEPI) - MCIT",
-    image: null,
+    image: "images/certificates/DEPI_certificate.png",
+  },
+  {
+    title: "NASA Space Apps Challenge 2024",
+    issuer: "NASA Space Apps Challenge",
+    image:
+      "images/certificates/certificate_hab_i_ba_2024__n_a_s_a__space__apps__challenge.png",
   },
   {
     title: "Software Development Training",
     issuer: "Egypt Experts for Software & Hardware (EES)",
-    image: null,
+    image: "images/certificates/EES.jfif",
   },
-  { title: "Certificate title", issuer: "Issuing organization", image: null },
+  {
+    title: "ECPC 2024 Participant",
+    issuer: "Egyptian Collegiate Programming Contest",
+    image: "images/certificates/ECPC2024.png",
+  },
+  {
+    title: "NTRA Graduation Projects Competition 2026",
+    issuer: "National Telecommunication Regulatory Authority (NTRA)",
+    image: "images/certificates/NTRA.png",
+  },
+  {
+    title: "ECPC 2023 Participant",
+    issuer: "Egyptian Collegiate Programming Contest",
+    image: "images/certificates/ECPC2023.png",
+  },
 ];
 
 export const CONTACT = {
