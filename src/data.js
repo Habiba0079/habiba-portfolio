@@ -12,7 +12,7 @@ export const PROFILE = {
 
   // One bullet per line, typed out when you press Start.
   about: [
-    "Hi! I'm **Habiba**, a **computer engineering** graduate.",
+    "A **computer engineering** graduate",
     "and I love **learning** and **building** things that make a difference.",
     "I build responsive **web apps**.",
     "I thrive in **team environments** and **collaborative projects**.",

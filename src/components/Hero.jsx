@@ -12,7 +12,8 @@ export default function Hero() {
       <StarField />
 
       <div className="hero-inner">
-        <h1 className="title">Hello!</h1>
+        {/* <h1 className="title">Hello!</h1> */}
+        <h1 className="title">I&apos;m {PROFILE.name}</h1>
         <p className="tagline">{PROFILE.tagline}</p>
 
         <button

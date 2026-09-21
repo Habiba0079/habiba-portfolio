@@ -33,7 +33,9 @@
   height: calc(var(--base) * var(--k, 1));
   fill: var(--star);
   cursor: pointer;
-  transition: top 1s ease, left 1s ease;
+  transition:
+    top 1s ease,
+    left 1s ease;
   animation: twinkle var(--dur, 3s) var(--delay, 0s) infinite ease-in-out;
 }
 @media (min-width: 768px) {
@@ -63,7 +65,8 @@
   margin-bottom: 1rem;
   font-family: var(--pixel);
   font-weight: 400;
-  font-size: clamp(2.4rem, 10vw, 5.5rem);
+  /* font-size: clamp(2.4rem, 10vw, 5.5rem); */
+  font-size: clamp(1.5rem, 8vw, 5rem);
   line-height: 1.1;
   color: var(--headers);
   text-shadow: 0.08em 0.08em 0 var(--shadow);
@@ -88,15 +91,23 @@
   border: 4px solid var(--block-line);
   padding: 0.9rem 1.6rem;
   cursor: pointer;
-  box-shadow: inset 4px 4px 0 #ffe08a, inset -4px -4px 0 var(--block-dark), 0 8px 0 var(--block-line);
-  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow:
+    inset 4px 4px 0 #ffe08a,
+    inset -4px -4px 0 var(--block-dark),
+    0 8px 0 var(--block-line);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
 }
 .start-btn:hover {
   filter: brightness(1.08);
 }
 .start-btn:active {
   transform: translateY(6px);
-  box-shadow: inset 4px 4px 0 #ffe08a, inset -4px -4px 0 var(--block-dark), 0 2px 0 var(--block-line);
+  box-shadow:
+    inset 4px 4px 0 #ffe08a,
+    inset -4px -4px 0 var(--block-dark),
+    0 2px 0 var(--block-line);
 }
 
 /* ---------- Intro dialog (opens with a height transition) ---------- */
@@ -104,12 +115,16 @@
   display: grid;
   grid-template-rows: 0fr;
   visibility: hidden;
-  transition: grid-template-rows 1s ease, visibility 0s 1s;
+  transition:
+    grid-template-rows 1s ease,
+    visibility 0s 1s;
 }
 .hero.is-open .about {
   grid-template-rows: 1fr;
   visibility: visible;
-  transition: grid-template-rows 1s ease, visibility 0s;
+  transition:
+    grid-template-rows 1s ease,
+    visibility 0s;
 }
 .about-clip {
   min-height: 0;
@@ -206,7 +221,9 @@
 .pipe-body {
   background: var(--pipe);
   border: 4px solid var(--pipe-line);
-  box-shadow: inset 8px 0 0 var(--pipe-light), inset -8px 0 0 var(--pipe-dark);
+  box-shadow:
+    inset 8px 0 0 var(--pipe-light),
+    inset -8px 0 0 var(--pipe-dark);
 }
 .pipe-lip {
   height: 32px;
