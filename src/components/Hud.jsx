@@ -4,8 +4,8 @@ export default function Hud({ coins, total, world }) {
   return (
     <div className="hud" role="group" aria-label="Game status">
       <div className="hud-item">
-        <span>Habiba</span>
-        <span>{score}</span>
+        <span>Player1</span>
+        {/* <span>{score}</span> */}
       </div>
       <div className="hud-item">
         <span>Coins</span>

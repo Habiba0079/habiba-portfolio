@@ -139,6 +139,10 @@ body {
   color: var(--light);
   background: var(--sky-deep);
   border-bottom: 4px solid var(--card);
+  /*stick to the top of the viewport */
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 .hud-item {
   display: flex;
