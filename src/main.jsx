@@ -6,6 +6,7 @@ import './styles/hero.css';
 import './styles/sections.css';
 import './styles/arcade.css';
 import './styles/runner.css';
+import './styles/snap.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

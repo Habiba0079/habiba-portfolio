@@ -1,0 +1,38 @@
+html {
+  scroll-snap-type: y mandatory;
+}
+
+.hero,
+.level,
+.strip {
+  scroll-snap-align: start;
+}
+.end {
+  scroll-snap-align: end;
+}
+
+.level {
+  scroll-snap-stop: always;
+}
+
+.hero,
+.level {
+  min-height: calc(100svh - 4.5rem);
+  scroll-margin-top: 4.5rem;
+}
+.hero {
+  height: calc(100svh - 4.5rem); 
+}
+.level {
+  /* scroll-margin-top: 4.5rem;     */
+  display: flex;
+  flex-direction: column;
+}
+.level > .container {
+  margin-block: auto;            
+}
+
+/*reduce motion*/
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-snap-type: none; }
+}
