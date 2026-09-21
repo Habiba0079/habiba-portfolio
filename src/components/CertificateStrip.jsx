@@ -27,7 +27,7 @@ function Frame({ cert }) {
 // The certificates roll past like a film strip at the bottom of the page. Nothing to click.
 export default function CertificateStrip() {
   return (
-    <section className="strip" aria-labelledby="strip-title">
+    <section className="strip" aria-labelledby="strip-title" style={{paddingTop: "150px"}}>
       <h2 className="strip-title" id="strip-title">
         Certificates
       </h2>
