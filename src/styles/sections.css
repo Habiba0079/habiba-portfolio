@@ -1154,12 +1154,12 @@
 /* ---------- Ending ---------- */
 .end {
   margin-top: 2rem;
-  padding-bottom: clamp(4.5rem, 12vw, 6rem);
+  padding-bottom: 3.5rem;
   text-align: center;
 }
 .end-text {
   margin: 0;
-  padding: 0 1rem;
+  padding: 0;
   font-family: var(--pixel);
   font-size: clamp(0.6rem, 1.8vw, 0.8rem);
   line-height: 2.2;
