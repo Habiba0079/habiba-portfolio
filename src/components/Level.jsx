@@ -13,7 +13,7 @@ export default function Level({ id, world, title, subtitle, glitch = false, wide
     >
       <div className={`container${wide ? ' container--wide' : ''}`}>
         <div className="level-head">
-          <span className="world">World {world}</span>
+          {/* <span className="world">World {world}</span> */}
           <h2 id={`${id}-title`}>{glitch ? <Glitch>{title}</Glitch> : title}</h2>
           {subtitle && <p className="level-sub">{subtitle}</p>}
         </div>
