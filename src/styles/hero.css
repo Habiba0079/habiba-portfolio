@@ -25,6 +25,7 @@
   position: absolute;
   inset: 0;
   z-index: 1;
+  cursor: pointer;
 }
 .star {
   --base: 15px;
@@ -37,6 +38,8 @@
     top 1s ease,
     left 1s ease;
   animation: twinkle var(--dur, 3s) var(--delay, 0s) infinite ease-in-out;
+
+  cursor: pointer;
 }
 @media (min-width: 768px) {
   .star {
